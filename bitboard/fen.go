@@ -44,7 +44,14 @@ func fen2ColoredBoard(fen string) coloredBoard {
 	if len(fields) != 6 {
 		log.Fatal("bad fen")
 	}
-	ranks := strings.Split(fields[0], "/")
+	b := createColoredBoard(fields[0])
+
+	return b
+
+}
+
+func createColoredBoard(piecePlacement string) coloredBoard {
+	ranks := strings.Split(piecePlacement, "/")
 	if len(ranks) != 8 {
 		log.Fatal("bad ranks no")
 	}
