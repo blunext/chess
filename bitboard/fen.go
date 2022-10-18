@@ -7,6 +7,10 @@ import (
 	"unicode"
 )
 
+var fileNumber = map[string]int{
+	"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8,
+}
+
 func createPositionFormFEN(fen string) Position {
 	fields := strings.Split(fen, " ")
 	if len(fields) != 6 {
@@ -29,7 +33,7 @@ func enPassant(s string) bitboard {
 	if s == "-" {
 		return ep
 	}
-	file := runeToFileNumber(s[:1])
+	file := fileNumber[s[:1]]
 	rank, _ := strconv.Atoi(s[1:])
 	b := (8-rank)*8 + file - 1
 	ep.setBit(b)
@@ -71,7 +75,7 @@ func createColoredBoard(piecePlacement string) coloredBoard {
 					bIndex++
 				}
 			case unicode.IsLetter(char):
-				b[bIndex] = runeToFigure(char)
+				b[bIndex] = runeToPiece(char)
 				bIndex++
 			}
 		}
@@ -79,7 +83,7 @@ func createColoredBoard(piecePlacement string) coloredBoard {
 	return b
 }
 
-func runeToFigure(r rune) coloredPiece {
+func runeToPiece(r rune) coloredPiece {
 	switch r {
 	case 'P':
 		return coloredPiece{Pawn, ColorWhite}
@@ -108,28 +112,5 @@ func runeToFigure(r rune) coloredPiece {
 	default:
 		log.Fatalf("cannot convert rune to coloredPiece: %v", r)
 		return noPiece
-	}
-}
-
-func runeToFileNumber(r string) int {
-	switch r {
-	case "a":
-		return 1
-	case "b":
-		return 2
-	case "c":
-		return 3
-	case "d":
-		return 4
-	case "e":
-		return 5
-	case "f":
-		return 6
-	case "g":
-		return 7
-	case "h":
-		return 8
-	default:
-		panic("bad file")
 	}
 }
