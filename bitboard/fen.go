@@ -7,13 +7,6 @@ import (
 	"unicode"
 )
 
-type coloredPiece struct {
-	piece uint8
-	color uint8
-}
-
-var noPiece = coloredPiece{Empty, 255}
-
 func runeToFigure(r rune) coloredPiece {
 	switch r {
 	case 'P':
@@ -46,11 +39,7 @@ func runeToFigure(r rune) coloredPiece {
 	}
 }
 
-const InitialPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-
-type coloredBoard [64]coloredPiece
-
-func fromFen(fen string) coloredBoard {
+func fen2ColoredBoard(fen string) coloredBoard {
 	fields := strings.Split(fen, " ")
 	if len(fields) != 6 {
 		log.Fatal("bad fen")
@@ -78,31 +67,4 @@ func fromFen(fen string) coloredBoard {
 		}
 	}
 	return b
-}
-
-func createPosition(board coloredBoard) Position {
-	position := Position{}
-	for i, cp := range board {
-		switch cp.piece {
-		case Pawn:
-			position.Pawns.setBit(i)
-		case Knight:
-			position.Knights.setBit(i)
-		case Bishop:
-			position.Bishops.setBit(i)
-		case Rook:
-			position.Rooks.setBit(i)
-		case Queen:
-			position.Queens.setBit(i)
-		case King:
-			position.Kings.setBit(i)
-		}
-		switch cp.color {
-		case ColorWhite:
-			position.White.setBit(i)
-		case ColorBlack:
-			position.Black.setBit(i)
-		}
-	}
-	return position
 }

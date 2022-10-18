@@ -7,7 +7,7 @@ import (
 )
 
 func TestFen(t *testing.T) {
-	cb := fromFen(InitialPosition)
+	cb := fen2ColoredBoard(InitialPosition)
 	assert.Equal(t, coloredPiece{Rook, ColorBlack}, cb[0])
 	assert.Equal(t, coloredPiece{Knight, ColorBlack}, cb[1])
 	assert.Equal(t, coloredPiece{Bishop, ColorBlack}, cb[2])
@@ -39,7 +39,7 @@ func TestFen(t *testing.T) {
 }
 
 func TestPosition(t *testing.T) {
-	cb := fromFen(InitialPosition)
+	cb := fen2ColoredBoard(InitialPosition)
 	position := createPosition(cb)
 	assert.Equal(t, bitboard(0xff00000000ff00), position.Pawns)
 	assert.Equal(t, bitboard(0x4200000000000042), position.Knights)
