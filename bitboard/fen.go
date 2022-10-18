@@ -11,6 +11,21 @@ var fileNumber = map[string]int{
 	"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8,
 }
 
+var rune2Piece = map[rune]coloredPiece{
+	'P': {Pawn, ColorWhite},
+	'N': {Knight, ColorWhite},
+	'B': {Bishop, ColorWhite},
+	'R': {Rook, ColorWhite},
+	'Q': {Queen, ColorWhite},
+	'K': {King, ColorWhite},
+	'p': {Pawn, ColorBlack},
+	'n': {Knight, ColorBlack},
+	'b': {Bishop, ColorBlack},
+	'r': {Rook, ColorBlack},
+	'q': {Queen, ColorBlack},
+	'k': {King, ColorBlack},
+}
+
 func createPositionFormFEN(fen string) Position {
 	fields := strings.Split(fen, " ")
 	if len(fields) != 6 {
@@ -75,42 +90,10 @@ func createColoredBoard(piecePlacement string) coloredBoard {
 					bIndex++
 				}
 			case unicode.IsLetter(char):
-				b[bIndex] = runeToPiece(char)
+				b[bIndex] = rune2Piece[char]
 				bIndex++
 			}
 		}
 	}
 	return b
-}
-
-func runeToPiece(r rune) coloredPiece {
-	switch r {
-	case 'P':
-		return coloredPiece{Pawn, ColorWhite}
-	case 'N':
-		return coloredPiece{Knight, ColorWhite}
-	case 'B':
-		return coloredPiece{Bishop, ColorWhite}
-	case 'R':
-		return coloredPiece{Rook, ColorWhite}
-	case 'Q':
-		return coloredPiece{Queen, ColorWhite}
-	case 'K':
-		return coloredPiece{King, ColorWhite}
-	case 'p':
-		return coloredPiece{Pawn, ColorBlack}
-	case 'n':
-		return coloredPiece{Knight, ColorBlack}
-	case 'b':
-		return coloredPiece{Bishop, ColorBlack}
-	case 'r':
-		return coloredPiece{Rook, ColorBlack}
-	case 'q':
-		return coloredPiece{Queen, ColorBlack}
-	case 'k':
-		return coloredPiece{King, ColorBlack}
-	default:
-		log.Fatalf("cannot convert rune to coloredPiece: %v", r)
-		return noPiece
-	}
 }
