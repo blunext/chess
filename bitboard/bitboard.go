@@ -6,21 +6,6 @@ import (
 
 type bitboard uint64
 
-const (
-	Empty uint8 = iota
-	Pawn
-	Knight
-	Bishop
-	Rook
-	Queen
-	King
-)
-
-const (
-	ColorWhite uint8 = 0
-	ColorBlack uint8 = 1
-)
-
 func (b *bitboard) Print() {
 	fmt.Println("")
 	for i := 0; i < 64; i++ {

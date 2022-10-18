@@ -52,7 +52,6 @@ func TestColoredBoard(t *testing.T) {
 
 func TestPosition(t *testing.T) {
 	position := createPositionFormFEN(InitialPosition)
-
 	tests := []struct {
 		expectedPattern bitboard
 		piecePattern    bitboard
@@ -69,10 +68,37 @@ func TestPosition(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run("positions", func(t *testing.T) {
+		t.Run("patterns", func(t *testing.T) {
 			assert.Equal(t, test.expectedPattern, test.piecePattern)
 		})
 		fmt.Println()
 	}
 
+	t.Run("castling", func(t *testing.T) {
+		assert.Equal(t, uint8(15), position.CastleSide)
+	})
+}
+
+func TestCastling(t *testing.T) {
+	tests := []struct {
+		inPattern string
+		expected  uint8
+	}{
+		{"KQkq", CastleWhiteKingSide | CastleWhiteQueenSide | CastleBlackKingSide | CastleBlackQueenSide},
+		{"Qkq", CastleWhiteQueenSide | CastleBlackKingSide | CastleBlackQueenSide},
+		{"Kkq", CastleWhiteKingSide | CastleBlackKingSide | CastleBlackQueenSide},
+		{"KQq", CastleWhiteKingSide | CastleWhiteQueenSide | CastleBlackQueenSide},
+		{"KQk", CastleWhiteKingSide | CastleWhiteQueenSide | CastleBlackKingSide},
+		{"KQ", CastleWhiteKingSide | CastleWhiteQueenSide},
+		{"kq", CastleBlackKingSide | CastleBlackQueenSide},
+		{"-", 0},
+	}
+
+	for _, test := range tests {
+		t.Run("castling", func(t *testing.T) {
+			castling := encodeCastle(test.inPattern)
+			assert.Equal(t, castling, test.expected)
+		})
+		fmt.Println()
+	}
 }

@@ -45,8 +45,30 @@ func createPositionFormFEN(fen string) Position {
 		log.Fatal("bad fen")
 	}
 	coloredBoard := createColoredBoard(fields[0])
-	return createPosition(coloredBoard)
+	position := createPosition(coloredBoard)
 
+	position.WhiteMove = fields[1] == "w"
+
+	position.CastleSide = encodeCastle(fields[2])
+
+	return position
+}
+
+func encodeCastle(castlingAbility string) uint8 {
+	var castle int
+	for _, ch := range castlingAbility {
+		switch ch {
+		case 'K':
+			castle |= CastleWhiteKingSide
+		case 'Q':
+			castle |= CastleWhiteQueenSide
+		case 'k':
+			castle |= CastleBlackKingSide
+		case 'q':
+			castle |= CastleBlackQueenSide
+		}
+	}
+	return uint8(castle)
 }
 
 func createColoredBoard(piecePlacement string) coloredBoard {

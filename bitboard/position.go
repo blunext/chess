@@ -1,5 +1,31 @@
 package bitboard
 
+const (
+	Empty uint8 = iota
+	Pawn
+	Knight
+	Bishop
+	Rook
+	Queen
+	King
+
+	ColorWhite uint8 = 0
+	ColorBlack uint8 = 1
+)
+const (
+	CastleWhiteKingSide = 1 << iota
+	CastleWhiteQueenSide
+	CastleBlackKingSide
+	CastleBlackQueenSide
+)
+
+type Position struct {
+	Pawns, Knights, Bishops, Rooks, Queens, Kings bitboard
+	White, Black                                  bitboard
+	WhiteMove                                     bool
+	CastleSide                                    uint8
+}
+
 type coloredPiece struct {
 	piece uint8
 	color uint8
@@ -10,12 +36,6 @@ type coloredBoard [64]coloredPiece
 const InitialPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 var noPiece = coloredPiece{Empty, 255}
-
-type Position struct {
-	Pawns, Knights, Bishops, Rooks, Queens, Kings bitboard
-	White, Black                                  bitboard
-	WhiteMove                                     bool
-}
 
 func createPosition(board coloredBoard) Position {
 	position := Position{}
