@@ -1,4 +1,4 @@
-package bitboard
+package board
 
 const (
 	Empty uint8 = iota
