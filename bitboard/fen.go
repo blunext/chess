@@ -39,14 +39,13 @@ func runeToFigure(r rune) coloredPiece {
 	}
 }
 
-func fen2ColoredBoard(fen string) coloredBoard {
+func createPositionFormFEN(fen string) Position {
 	fields := strings.Split(fen, " ")
 	if len(fields) != 6 {
 		log.Fatal("bad fen")
 	}
-	b := createColoredBoard(fields[0])
-
-	return b
+	coloredBoard := createColoredBoard(fields[0])
+	return createPosition(coloredBoard)
 
 }
 

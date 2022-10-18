@@ -11,6 +11,12 @@ const InitialPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 
 
 var noPiece = coloredPiece{Empty, 255}
 
+type Position struct {
+	Pawns, Knights, Bishops, Rooks, Queens, Kings bitboard
+	White, Black                                  bitboard
+	WhiteMove                                     bool
+}
+
 func createPosition(board coloredBoard) Position {
 	position := Position{}
 	for i, cp := range board {

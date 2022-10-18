@@ -21,12 +21,6 @@ const (
 	ColorBlack uint8 = 1
 )
 
-type Position struct {
-	Pawns, Knights, Bishops, Rooks, Queens, Kings bitboard
-	White, Black                                  bitboard
-	WhiteMove                                     bool
-}
-
 func (b *bitboard) Print() {
 	fmt.Println("")
 	for i := 0; i < 64; i++ {

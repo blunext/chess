@@ -51,8 +51,7 @@ func TestColoredBoard(t *testing.T) {
 }
 
 func TestPosition(t *testing.T) {
-	cb := fen2ColoredBoard(InitialPosition)
-	position := createPosition(cb)
+	position := createPositionFormFEN(InitialPosition)
 
 	tests := []struct {
 		expectedPattern bitboard
