@@ -25,6 +25,7 @@ type Position struct {
 	WhiteMove                                     bool
 	CastleSide                                    uint8
 	EnPassant                                     bitboard
+	HalfmoveClock                                 uint8
 }
 
 type coloredPiece struct {

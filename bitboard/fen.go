@@ -35,10 +35,13 @@ func createPositionFormFEN(fen string) Position {
 	position := createPosition(coloredBoard)
 
 	position.WhiteMove = fields[1] == "w"
-
 	position.CastleSide = castleAbility(fields[2])
-
 	position.EnPassant = enPassant(fields[3])
+
+	halfMoveClock, _ := strconv.Atoi(fields[4])
+	position.HalfmoveClock = uint8(halfMoveClock)
+
+	// todo: do we need Fullmove counter?
 
 	return position
 }
