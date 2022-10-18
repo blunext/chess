@@ -7,38 +7,6 @@ import (
 	"unicode"
 )
 
-func runeToFigure(r rune) coloredPiece {
-	switch r {
-	case 'P':
-		return coloredPiece{Pawn, ColorWhite}
-	case 'N':
-		return coloredPiece{Knight, ColorWhite}
-	case 'B':
-		return coloredPiece{Bishop, ColorWhite}
-	case 'R':
-		return coloredPiece{Rook, ColorWhite}
-	case 'Q':
-		return coloredPiece{Queen, ColorWhite}
-	case 'K':
-		return coloredPiece{King, ColorWhite}
-	case 'p':
-		return coloredPiece{Pawn, ColorBlack}
-	case 'n':
-		return coloredPiece{Knight, ColorBlack}
-	case 'b':
-		return coloredPiece{Bishop, ColorBlack}
-	case 'r':
-		return coloredPiece{Rook, ColorBlack}
-	case 'q':
-		return coloredPiece{Queen, ColorBlack}
-	case 'k':
-		return coloredPiece{King, ColorBlack}
-	default:
-		log.Fatalf("cannot convert rune to coloredPiece: %v", r)
-		return noPiece
-	}
-}
-
 func createPositionFormFEN(fen string) Position {
 	fields := strings.Split(fen, " ")
 	if len(fields) != 6 {
@@ -49,14 +17,28 @@ func createPositionFormFEN(fen string) Position {
 
 	position.WhiteMove = fields[1] == "w"
 
-	position.CastleSide = encodeCastle(fields[2])
+	position.CastleSide = castleAbility(fields[2])
+
+	position.EnPassant = enPassant(fields[3])
 
 	return position
 }
 
-func encodeCastle(castlingAbility string) uint8 {
+func enPassant(s string) bitboard {
+	var ep bitboard
+	if s == "-" {
+		return ep
+	}
+	file := runeToFileNumber(s[:1])
+	rank, _ := strconv.Atoi(s[1:])
+	b := (8-rank)*8 + file - 1
+	ep.setBit(b)
+	return ep
+}
+
+func castleAbility(c string) uint8 {
 	var castle int
-	for _, ch := range castlingAbility {
+	for _, ch := range c {
 		switch ch {
 		case 'K':
 			castle |= CastleWhiteKingSide
@@ -95,4 +77,59 @@ func createColoredBoard(piecePlacement string) coloredBoard {
 		}
 	}
 	return b
+}
+
+func runeToFigure(r rune) coloredPiece {
+	switch r {
+	case 'P':
+		return coloredPiece{Pawn, ColorWhite}
+	case 'N':
+		return coloredPiece{Knight, ColorWhite}
+	case 'B':
+		return coloredPiece{Bishop, ColorWhite}
+	case 'R':
+		return coloredPiece{Rook, ColorWhite}
+	case 'Q':
+		return coloredPiece{Queen, ColorWhite}
+	case 'K':
+		return coloredPiece{King, ColorWhite}
+	case 'p':
+		return coloredPiece{Pawn, ColorBlack}
+	case 'n':
+		return coloredPiece{Knight, ColorBlack}
+	case 'b':
+		return coloredPiece{Bishop, ColorBlack}
+	case 'r':
+		return coloredPiece{Rook, ColorBlack}
+	case 'q':
+		return coloredPiece{Queen, ColorBlack}
+	case 'k':
+		return coloredPiece{King, ColorBlack}
+	default:
+		log.Fatalf("cannot convert rune to coloredPiece: %v", r)
+		return noPiece
+	}
+}
+
+func runeToFileNumber(r string) int {
+	switch r {
+	case "a":
+		return 1
+	case "b":
+		return 2
+	case "c":
+		return 3
+	case "d":
+		return 4
+	case "e":
+		return 5
+	case "f":
+		return 6
+	case "g":
+		return 7
+	case "h":
+		return 8
+	default:
+		panic("bad file")
+	}
 }
