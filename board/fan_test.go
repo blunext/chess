@@ -51,8 +51,8 @@ func TestColoredBoard(t *testing.T) {
 func TestPosition(t *testing.T) {
 	position := createPositionFormFEN(InitialPosition)
 	tests := []struct {
-		expectedPattern bitboard
-		piecePattern    bitboard
+		expectedPattern Bitboard
+		piecePattern    Bitboard
 	}{
 		{0xff00000000ff00, position.Pawns},
 		{0x4200000000000042, position.Knights},
@@ -72,7 +72,7 @@ func TestPosition(t *testing.T) {
 	}
 
 	assert.Equal(t, uint8(CastleWhiteKingSide|CastleWhiteQueenSide|CastleBlackKingSide|CastleBlackQueenSide), position.CastleSide, "castling failed")
-	assert.Equal(t, bitboard(0), position.EnPassant, "en passant failed")
+	assert.Equal(t, Bitboard(0), position.EnPassant, "en passant failed")
 
 }
 
@@ -103,7 +103,7 @@ func TestCastling(t *testing.T) {
 func TestEnPassant(t *testing.T) {
 	tests := []struct {
 		inPattern string
-		expected  bitboard
+		expected  Bitboard
 	}{
 		{"a3", 0x10000000000},
 		{"c3", 0x40000000000},

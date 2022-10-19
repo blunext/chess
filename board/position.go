@@ -20,11 +20,11 @@ const (
 )
 
 type Position struct {
-	Pawns, Knights, Bishops, Rooks, Queens, Kings bitboard
-	White, Black                                  bitboard
+	Pawns, Knights, Bishops, Rooks, Queens, Kings Bitboard
+	White, Black                                  Bitboard
 	WhiteMove                                     bool
 	CastleSide                                    uint8
-	EnPassant                                     bitboard
+	EnPassant                                     Bitboard
 	HalfmoveClock                                 uint8
 }
 
@@ -44,23 +44,23 @@ func createPosition(board coloredBoard) Position {
 	for i, cp := range board {
 		switch cp.piece {
 		case Pawn:
-			position.Pawns.setBit(i)
+			position.Pawns.SetBit(i)
 		case Knight:
-			position.Knights.setBit(i)
+			position.Knights.SetBit(i)
 		case Bishop:
-			position.Bishops.setBit(i)
+			position.Bishops.SetBit(i)
 		case Rook:
-			position.Rooks.setBit(i)
+			position.Rooks.SetBit(i)
 		case Queen:
-			position.Queens.setBit(i)
+			position.Queens.SetBit(i)
 		case King:
-			position.Kings.setBit(i)
+			position.Kings.SetBit(i)
 		}
 		switch cp.color {
 		case ColorWhite:
-			position.White.setBit(i)
+			position.White.SetBit(i)
 		case ColorBlack:
-			position.Black.setBit(i)
+			position.Black.SetBit(i)
 		}
 	}
 	return position

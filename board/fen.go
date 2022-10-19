@@ -46,15 +46,15 @@ func createPositionFormFEN(fen string) Position {
 	return position
 }
 
-func enPassant(s string) bitboard {
-	var ep bitboard
+func enPassant(s string) Bitboard {
+	var ep Bitboard
 	if s == "-" {
 		return ep
 	}
 	file := fileNumber[s[:1]]
 	rank, _ := strconv.Atoi(s[1:])
 	b := (8-rank)*8 + file - 1
-	ep.setBit(b)
+	ep.SetBit(b)
 	return ep
 }
 
