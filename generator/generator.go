@@ -14,27 +14,36 @@ type generatedMoves map[uint8]squareMoves
 
 func NewGenerator() generatedMoves {
 	moves := make(generatedMoves)
-	rookGen(moves)
+	generateMoves(moves)
 	fmt.Println(len(moves))
 	return moves
 }
 
-func rookGen(generatedMoves generatedMoves) {
-	var squareMoves = make(squareMoves)
+func generateMoves(generatedMoves generatedMoves) {
+	var squageMv = make(squareMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions []possibleMoves
-		down := rookDown(pos)
-		if len(down) != 0 {
-			directions = append(directions, down)
+		moves := rookDown(pos)
+		if len(moves) != 0 {
+			directions = append(directions, moves)
 		}
-		up := rookUp(pos)
-		if len(up) != 0 {
-			directions = append(directions, up)
+		moves = rookUp(pos)
+		if len(moves) != 0 {
+			directions = append(directions, moves)
 		}
-		squareMoves[board.Bitboard(pos)] = directions
+		moves = rookRight(pos)
+		if len(moves) != 0 {
+			directions = append(directions, moves)
+		}
+		moves = rookLeft(pos)
+		if len(moves) != 0 {
+			directions = append(directions, moves)
+		}
+
+		squageMv[board.Bitboard(pos)] = directions
 	}
 
-	generatedMoves[board.Rook] = squareMoves
+	generatedMoves[board.Rook] = squageMv
 }
 
 func rookDown(pos int) possibleMoves {
@@ -56,7 +65,28 @@ func rookUp(pos int) possibleMoves {
 		newPos.SetBit(pos - i*8)
 		list = append(list, newPos)
 	}
+	return exactSize(list)
+}
 
+func rookRight(pos int) possibleMoves {
+	var list possibleMoves
+	file := pos&7 + 1
+	for i := 1; i <= 8-file; i++ {
+		var newPos board.Bitboard
+		newPos.SetBit(pos + i)
+		list = append(list, newPos)
+	}
+	return exactSize(list)
+}
+
+func rookLeft(pos int) possibleMoves {
+	var list possibleMoves
+	file := pos&7 + 1
+	for i := 1; i < file; i++ {
+		var newPos board.Bitboard
+		newPos.SetBit(pos - i)
+		list = append(list, newPos)
+	}
 	return exactSize(list)
 }
 
