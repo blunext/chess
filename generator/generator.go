@@ -20,7 +20,7 @@ func NewGenerator() generatedMoves {
 }
 
 func generateMoves(generatedMoves generatedMoves) {
-	var squageMv = make(squareMoves)
+	var squareMoves = make(squareMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions []possibleMoves
 		moves := rookDown(pos)
@@ -40,10 +40,10 @@ func generateMoves(generatedMoves generatedMoves) {
 			directions = append(directions, moves)
 		}
 
-		squageMv[board.Bitboard(pos)] = directions
+		squareMoves[board.Bitboard(pos)] = directions
 	}
 
-	generatedMoves[board.Rook] = squageMv
+	generatedMoves[board.Rook] = squareMoves
 }
 
 func rookDown(pos int) possibleMoves {
