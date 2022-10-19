@@ -96,7 +96,7 @@ func TestRookLeft(t *testing.T) {
 		{63, possibleMoves{0x4000000000000000, 0x800000000000000, 0x100000000000000}, 7},
 	}
 	for _, test := range tests {
-		t.Run("rook right", func(t *testing.T) {
+		t.Run("rook left", func(t *testing.T) {
 			positions := rookLeft(test.pos)
 			assert.Equal(t, test.len, len(positions))
 			for i, expected := range test.contains {
