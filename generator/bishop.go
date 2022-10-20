@@ -20,12 +20,12 @@ func generateBishopMoves() squareMoves {
 		if len(moves) != 0 {
 			directions = append(directions, moves)
 		}
-		moves = bishopSE(pos)
+		moves = bishopNE(pos)
 		if len(moves) != 0 {
 			directions = append(directions, moves)
 		}
 
-		squareMoves[board.Bitboard(pos)] = directions
+		squareMoves[board.Bitboard(pos)] = exactSize(directions)
 	}
 	return squareMoves
 }

@@ -25,7 +25,7 @@ func generateRookMoves() squareMoves {
 			directions = append(directions, moves)
 		}
 
-		squareMoves[board.Bitboard(pos)] = directions
+		squareMoves[board.Bitboard(pos)] = exactSize(directions)
 	}
 	return squareMoves
 }
@@ -72,10 +72,4 @@ func rookLeft(pos int) possibleMoves {
 		list = append(list, newPos)
 	}
 	return exactSize(list)
-}
-
-func exactSize(list possibleMoves) possibleMoves {
-	exactSlise := make(possibleMoves, len(list))
-	copy(exactSlise, list)
-	return exactSlise
 }
