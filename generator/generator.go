@@ -14,7 +14,8 @@ type generatedMoves map[uint8]squareMoves
 
 func NewGenerator() generatedMoves {
 	moves := make(generatedMoves)
-	generateRooks(moves)
+	moves[board.Rook] = generateRookMoves()
+	moves[board.Bishop] = generateBishopMoves()
 	fmt.Println(len(moves))
 	return moves
 }

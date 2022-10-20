@@ -4,7 +4,7 @@ import (
 	"chess/board"
 )
 
-func generateRooks(generatedMoves generatedMoves) {
+func generateRookMoves() squareMoves {
 	var squareMoves = make(squareMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions []possibleMoves
@@ -27,8 +27,7 @@ func generateRooks(generatedMoves generatedMoves) {
 
 		squareMoves[board.Bitboard(pos)] = directions
 	}
-
-	generatedMoves[board.Rook] = squareMoves
+	return squareMoves
 }
 
 func rookDown(pos int) possibleMoves {
