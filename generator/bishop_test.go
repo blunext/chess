@@ -59,3 +59,30 @@ func TestBishopSW(t *testing.T) {
 		})
 	}
 }
+
+func TestBishopNE(t *testing.T) {
+	tests := []struct {
+		pos      int
+		contains possibleMoves
+		len      int
+	}{
+		// {5, possibleMoves{}, 0},
+		// {20, possibleMoves{0x2000, 0x40}, 2},
+		// {59, possibleMoves{0x10000000000000, 0x200000000000, 0x80000000}, 4},
+		{56, possibleMoves{0x2000000000000, 0x10000000, 0x80}, 7},
+	}
+
+	for _, test := range tests {
+		t.Run("bishop NE", func(t *testing.T) {
+			positions := bishopNE(test.pos)
+			assert.Equal(t, test.len, len(positions))
+			for i, expected := range test.contains {
+				assert.Contains(t, positions, expected)
+				if i == 0 {
+					// check if the first one is expected
+					assert.Equal(t, positions[0], expected)
+				}
+			}
+		})
+	}
+}
