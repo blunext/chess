@@ -45,7 +45,7 @@ func file(pos int) int {
 }
 
 func rank(pos int) int {
-	return 8 - pos>>3
+	return 7 - pos>>3
 }
 
 func rankAndFile(pos int) (int, int) {

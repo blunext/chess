@@ -66,9 +66,9 @@ func TestBishopNE(t *testing.T) {
 		contains possibleMoves
 		len      int
 	}{
-		// {5, possibleMoves{}, 0},
-		// {20, possibleMoves{0x2000, 0x40}, 2},
-		// {59, possibleMoves{0x10000000000000, 0x200000000000, 0x80000000}, 4},
+		{5, possibleMoves{}, 0},
+		{20, possibleMoves{0x2000, 0x40}, 2},
+		{59, possibleMoves{0x10000000000000, 0x200000000000, 0x80000000}, 4},
 		{56, possibleMoves{0x2000000000000, 0x10000000, 0x80}, 7},
 	}
 
