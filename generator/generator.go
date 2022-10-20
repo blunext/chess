@@ -35,7 +35,7 @@ func generateQueenMoves(rookMoves, bishopMoves squareMoves) squareMoves {
 }
 
 func exactSize[T any](list []T) []T {
-	exactSlise := make([]T, len(list))
-	copy(exactSlise, list)
-	return exactSlise
+	exactSlice := make([]T, len(list))
+	copy(exactSlice, list)
+	return exactSlice
 }
