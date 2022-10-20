@@ -39,3 +39,15 @@ func exactSize[T any](list []T) []T {
 	copy(exactSlice, list)
 	return exactSlice
 }
+
+func file(pos int) int {
+	return pos & 7
+}
+
+func rank(pos int) int {
+	return 8 - pos>>3
+}
+
+func rankAndFile(pos int) (int, int) {
+	return rank(pos), file(pos)
+}

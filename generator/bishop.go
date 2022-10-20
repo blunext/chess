@@ -32,8 +32,7 @@ func generateBishopMoves() squareMoves {
 
 func bishopSE(pos int) possibleMoves {
 	var list possibleMoves
-	rank := 8 - pos>>3
-	file := pos & 7
+	rank, file := rankAndFile(pos)
 	for {
 		rank -= 1
 		file += 1
@@ -49,8 +48,7 @@ func bishopSE(pos int) possibleMoves {
 
 func bishopSW(pos int) possibleMoves {
 	var list possibleMoves
-	rank := 8 - pos>>3
-	file := pos & 7
+	rank, file := rankAndFile(pos)
 	for {
 		rank -= 1
 		file -= 1
@@ -66,8 +64,7 @@ func bishopSW(pos int) possibleMoves {
 
 func bishopNE(pos int) possibleMoves {
 	var list possibleMoves
-	rank := 8 - pos>>3
-	file := pos & 7
+	rank, file := rankAndFile(pos)
 	for {
 		rank += 1
 		file += 1
@@ -83,8 +80,7 @@ func bishopNE(pos int) possibleMoves {
 
 func bishopNW(pos int) possibleMoves {
 	var list possibleMoves
-	rank := 8 - pos>>3
-	file := pos & 7
+	rank, file := rankAndFile(pos)
 	for {
 		rank += 1
 		file -= 1

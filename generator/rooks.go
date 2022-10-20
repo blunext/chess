@@ -32,7 +32,7 @@ func generateRookMoves() squareMoves {
 
 func rookDown(pos int) possibleMoves {
 	var list possibleMoves
-	rank := 8 - pos>>3
+	rank := rank(pos)
 	for i := 1; i < rank; i++ {
 		var newPos board.Bitboard
 		newPos.SetBit(pos + i*8)
@@ -43,7 +43,7 @@ func rookDown(pos int) possibleMoves {
 
 func rookUp(pos int) possibleMoves {
 	var list possibleMoves
-	rank := 8 - pos>>3
+	rank := rank(pos)
 	for i := 1; i <= 8-rank; i++ {
 		var newPos board.Bitboard
 		newPos.SetBit(pos - i*8)
@@ -54,7 +54,7 @@ func rookUp(pos int) possibleMoves {
 
 func rookRight(pos int) possibleMoves {
 	var list possibleMoves
-	file := pos&7 + 1
+	file := file(pos) + 1
 	for i := 1; i <= 8-file; i++ {
 		var newPos board.Bitboard
 		newPos.SetBit(pos + i)
@@ -65,7 +65,7 @@ func rookRight(pos int) possibleMoves {
 
 func rookLeft(pos int) possibleMoves {
 	var list possibleMoves
-	file := pos&7 + 1
+	file := file(pos) + 1
 	for i := 1; i < file; i++ {
 		var newPos board.Bitboard
 		newPos.SetBit(pos - i)
