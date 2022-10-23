@@ -6,9 +6,11 @@ import (
 
 type possibleMoves []board.Bitboard
 
-type squareMoves map[board.Bitboard][]possibleMoves
+type sliderMoves map[board.Bitboard][]possibleMoves
 
-type generatedMoves map[uint8]squareMoves
+type generatedMoves map[uint8]sliderMoves
+
+type knightMoves map[board.Bitboard]possibleMoves
 
 func NewGenerator() generatedMoves {
 	moves := make(generatedMoves)
@@ -18,8 +20,8 @@ func NewGenerator() generatedMoves {
 	return moves
 }
 
-func generateQueenMoves(rookMoves, bishopMoves squareMoves) squareMoves {
-	var squareMoves = make(squareMoves)
+func generateQueenMoves(rookMoves, bishopMoves sliderMoves) sliderMoves {
+	var squareMoves = make(sliderMoves)
 	var pos board.Bitboard
 	for pos = 0; pos < 64; pos++ {
 		var directions []possibleMoves
