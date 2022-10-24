@@ -46,15 +46,13 @@ func createPositionFormFEN(fen string) Position {
 	return position
 }
 
-func enPassant(s string) Bitboard {
-	var ep Bitboard
+func enPassant(s string) uint64 {
 	if s == "-" {
-		return ep
+		return 0
 	}
 	file := fileNumber[s[:1]]
 	rank, _ := strconv.Atoi(s[1:])
-	ep.SetBit(squareIndex(file-1, rank-1))
-	return ep
+	return OneBit(squareIndex(file-1, rank-1))
 }
 
 func castleAbility(c string) uint8 {

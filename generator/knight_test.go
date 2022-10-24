@@ -4,13 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"chess/board"
 )
 
 func TestKnight(t *testing.T) {
 	tests := []struct {
-		pos      board.Bitboard
+		pos      uint64
 		contains possibleMoves
 		len      int
 	}{

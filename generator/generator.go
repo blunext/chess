@@ -4,13 +4,13 @@ import (
 	"chess/board"
 )
 
-type possibleMoves []board.Bitboard
+type possibleMoves []uint64
 
 type sliderMoves map[board.Bitboard][]possibleMoves
 
 type generatedMoves map[uint8]sliderMoves
 
-type knightMoves map[board.Bitboard]possibleMoves
+type knightMoves map[uint64]possibleMoves
 
 func NewGenerator() generatedMoves {
 	moves := make(generatedMoves)

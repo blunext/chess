@@ -27,14 +27,12 @@ func generateKnightMoves() knightMoves {
 			file += knight.step[0]
 			rank += knight.step[1]
 			if rank > 0 && rank < 8 && file > 0 && file < 8 {
-				var newPos board.Bitboard
-				n := (7-rank)*8 + file
-				newPos.SetBit(n)
+				newPos := board.OneBit((7-rank)*8 + file)
 				list = append(list, newPos)
 			}
 		}
 		if len(list) > 0 {
-			knightMoves[board.Bitboard(pos)] = exactSize(list)
+			knightMoves[uint64(pos)] = exactSize(list)
 		}
 	}
 	return knightMoves

@@ -7,49 +7,38 @@ import (
 type Bitboard uint64
 
 func BB() {
-	b := Bitboard(0x40201)
-	b.SetBit(27)
+	b := uint64(0x40201)
+	b = SetBit(b, 27)
 	s := pretty(b)
 	fmt.Println(s)
 }
 
-func (b *Bitboard) Print() {
-	fmt.Println("")
-	for i := 0; i < 64; i++ {
-		sq := 0
-		if b.IsBitSet(i) {
-			sq = 1
-		}
-		fmt.Print(sq)
-		if ((i + 1) % 8) == 0 {
-			fmt.Println()
-		}
-	}
-	fmt.Println()
-}
-
-func (b *Bitboard) bit(index int) uint64 {
+func bit(b uint64, index int) uint64 {
 	mask := uint64(1) << index
-	return (uint64(*b) & mask) >> index
+	return (b & mask) >> index
 }
 
-func (b *Bitboard) IsBitSet(index int) bool {
-	return b.bit(index) == 1
+func IsBitSet(b uint64, index int) bool {
+	return bit(b, index) == 1
 }
 
-func (b *Bitboard) SetBit(index int) {
-	*b |= 1 << index
+func SetBit(b uint64, index int) uint64 {
+	return b | (1 << index)
+}
+
+func OneBit(index int) uint64 {
+	return 1 << index
 }
 
 func squareIndex(f, r int) int {
 	return (r << 3) + f
 }
 
-func pretty(b Bitboard) string {
+func pretty(b uint64) string {
 	s := "+---+---+---+---+---+---+---+---+\n"
 	for r := RANK_8; r >= RANK_1; r-- {
 		for f := FILE_A; f <= FILE_H; f++ {
-			if b.IsBitSet(squareIndex(f, r)) {
+			if IsBitSet(b, squareIndex(f, r)) {
 				s += "| X "
 			} else {
 				s += "|   "

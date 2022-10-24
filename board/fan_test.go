@@ -51,28 +51,29 @@ func TestColoredBoard(t *testing.T) {
 func TestPosition(t *testing.T) {
 	position := createPositionFormFEN(InitialPosition)
 	tests := []struct {
-		expectedPattern Bitboard
-		piecePattern    Bitboard
+		name            string
+		expectedPattern uint64
+		piecePattern    uint64
 	}{
-		{0xff00000000ff00, position.Pawns},
-		{0x4200000000000042, position.Knights},
-		{0x2400000000000024, position.Bishops},
-		{0x8100000000000081, position.Rooks},
-		{0x800000000000008, position.Queens},
-		{0x1000000000000010, position.Kings},
+		{"Pawns", 0xff00000000ff00, position.Pawns},
+		{"Knights", 0x4200000000000042, position.Knights},
+		{"Bishops", 0x2400000000000024, position.Bishops},
+		{"Rooks", 0x8100000000000081, position.Rooks},
+		{"Queens", 0x800000000000008, position.Queens},
+		{"Kings", 0x1000000000000010, position.Kings},
 
-		{0xffff000000000000, position.White},
-		{0xffff, position.Black},
+		{"White", 0xffff000000000000, position.White},
+		{"Black", 0xffff, position.Black},
 	}
 
 	for _, test := range tests {
-		t.Run("patterns", func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expectedPattern, test.piecePattern)
 		})
 	}
 
 	assert.Equal(t, uint8(CastleWhiteKingSide|CastleWhiteQueenSide|CastleBlackKingSide|CastleBlackQueenSide), position.CastleSide, "castling failed")
-	assert.Equal(t, Bitboard(0), position.EnPassant, "en passant failed")
+	assert.Equal(t, uint64(0), position.EnPassant, "en passant failed")
 
 }
 
@@ -93,7 +94,7 @@ func TestCastling(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run("castling", func(t *testing.T) {
+		t.Run("castling: "+test.inPattern, func(t *testing.T) {
 			castling := castleAbility(test.inPattern)
 			assert.Equal(t, castling, test.expected)
 		})
@@ -103,7 +104,7 @@ func TestCastling(t *testing.T) {
 func TestEnPassant(t *testing.T) {
 	tests := []struct {
 		inPattern string
-		expected  Bitboard
+		expected  uint64
 	}{
 		{"a6", 0x10000000000},
 		{"c6", 0x40000000000},
@@ -114,7 +115,7 @@ func TestEnPassant(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run("en passant", func(t *testing.T) {
+		t.Run("en passant: "+test.inPattern, func(t *testing.T) {
 			result := enPassant(test.inPattern)
 			assert.Equal(t, result, test.expected)
 		})
