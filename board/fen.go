@@ -53,8 +53,7 @@ func enPassant(s string) Bitboard {
 	}
 	file := fileNumber[s[:1]]
 	rank, _ := strconv.Atoi(s[1:])
-	b := (8-rank)*8 + file - 1
-	ep.SetBit(b)
+	ep.SetBit(squareIndex(file-1, rank-1))
 	return ep
 }
 

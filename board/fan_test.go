@@ -105,11 +105,11 @@ func TestEnPassant(t *testing.T) {
 		inPattern string
 		expected  Bitboard
 	}{
-		{"a3", 0x10000000000},
-		{"c3", 0x40000000000},
-		{"h3", 0x800000000000},
-		{"b6", 0x20000},
-		{"g6", 0x400000},
+		{"a6", 0x10000000000},
+		{"c6", 0x40000000000},
+		{"h6", 0x800000000000},
+		{"b3", 0x20000},
+		{"g3", 0x400000},
 		{"-", 0},
 	}
 
@@ -119,4 +119,9 @@ func TestEnPassant(t *testing.T) {
 			assert.Equal(t, result, test.expected)
 		})
 	}
+}
+
+func TestBB(t *testing.T) {
+
+	BB()
 }

@@ -6,6 +6,13 @@ import (
 
 type Bitboard uint64
 
+func BB() {
+	b := Bitboard(0x40201)
+	b.SetBit(27)
+	s := pretty(b)
+	fmt.Println(s)
+}
+
 func (b *Bitboard) Print() {
 	fmt.Println("")
 	for i := 0; i < 64; i++ {
@@ -32,4 +39,24 @@ func (b *Bitboard) IsBitSet(index int) bool {
 
 func (b *Bitboard) SetBit(index int) {
 	*b |= 1 << index
+}
+
+func squareIndex(f, r int) int {
+	return (r << 3) + f
+}
+
+func pretty(b Bitboard) string {
+	s := "+---+---+---+---+---+---+---+---+\n"
+	for r := RANK_8; r >= RANK_1; r-- {
+		for f := FILE_A; f <= FILE_H; f++ {
+			if b.IsBitSet(squareIndex(f, r)) {
+				s += "| X "
+			} else {
+				s += "|   "
+			}
+		}
+		s += fmt.Sprintf("| %d\n+---+---+---+---+---+---+---+---+\n", r+1)
+	}
+	s += "  a   b   c   d   e   f   g   h\n"
+	return s
 }
