@@ -34,7 +34,8 @@ func rookDown(pos int) possibleMoves {
 	var list possibleMoves
 	rank := rank(pos)
 	for i := 1; i <= rank; i++ {
-		newPos := board.OneBit(pos + i*8)
+		var newPos board.Bitboard
+		newPos.SetBit(pos + i*8)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -44,7 +45,8 @@ func rookUp(pos int) possibleMoves {
 	var list possibleMoves
 	rank := rank(pos)
 	for i := 1; i < 8-rank; i++ {
-		newPos := board.OneBit(pos - i*8)
+		var newPos board.Bitboard
+		newPos.SetBit(pos - i*8)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -54,7 +56,8 @@ func rookRight(pos int) possibleMoves {
 	var list possibleMoves
 	file := file(pos) + 1
 	for i := 1; i <= 8-file; i++ {
-		newPos := board.OneBit(pos + i)
+		var newPos board.Bitboard
+		newPos.SetBit(pos + i)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -64,7 +67,8 @@ func rookLeft(pos int) possibleMoves {
 	var list possibleMoves
 	file := file(pos) + 1
 	for i := 1; i < file; i++ {
-		newPos := board.OneBit(pos - i)
+		var newPos board.Bitboard
+		newPos.SetBit(pos - i)
 		list = append(list, newPos)
 	}
 	return exactSize(list)

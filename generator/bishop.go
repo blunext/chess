@@ -39,7 +39,8 @@ func bishopSE(pos int) possibleMoves {
 		if rank < 0 || file >= 8 {
 			break
 		}
-		newPos := board.OneBit((7-rank)*8 + file)
+		var newPos board.Bitboard
+		newPos.SetBit((7-rank)*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -54,7 +55,8 @@ func bishopSW(pos int) possibleMoves {
 		if rank < 0 || file < 0 {
 			break
 		}
-		newPos := board.OneBit((7-rank)*8 + file)
+		var newPos board.Bitboard
+		newPos.SetBit((7-rank)*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -69,7 +71,8 @@ func bishopNE(pos int) possibleMoves {
 		if rank >= 8 || file >= 8 {
 			break
 		}
-		newPos := board.OneBit((7-rank)*8 + file)
+		var newPos board.Bitboard
+		newPos.SetBit((7-rank)*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -84,7 +87,8 @@ func bishopNW(pos int) possibleMoves {
 		if rank >= 8 || file < 0 {
 			break
 		}
-		newPos := board.OneBit((7-rank)*8 + file)
+		var newPos board.Bitboard
+		newPos.SetBit((7-rank)*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
