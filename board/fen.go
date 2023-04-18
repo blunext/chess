@@ -39,7 +39,7 @@ func createPositionFormFEN(fen string) Position {
 	position.EnPassant = enPassant(fields[3])
 
 	halfMoveClock, _ := strconv.Atoi(fields[4])
-	position.HalfmoveClock = uint8(halfMoveClock)
+	position.HalfMoveClock = uint8(halfMoveClock)
 
 	// todo: do we need Fullmove counter?
 
