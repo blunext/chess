@@ -1,7 +1,11 @@
 package main
 
-import "chess/magic"
+import (
+	"chess/generator"
+	"chess/magic"
+)
 
 func main() {
 	magic.Prepare()
+	generator.NewGenerator()
 }

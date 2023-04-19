@@ -122,6 +122,5 @@ func TestEnPassant(t *testing.T) {
 }
 
 func TestBB(t *testing.T) {
-
 	BB()
 }
