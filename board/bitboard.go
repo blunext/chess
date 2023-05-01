@@ -47,8 +47,8 @@ func squareIndex(f, r int) int {
 
 func pretty(b Bitboard) string {
 	s := "+---+---+---+---+---+---+---+---+\n"
-	for r := RANK_8; r >= RANK_1; r-- {
-		for f := FILE_A; f <= FILE_H; f++ {
+	for r := Rank8; r >= Rank1; r-- {
+		for f := FileA; f <= FileH; f++ {
 			if b.IsBitSet(squareIndex(f, r)) {
 				s += "| X "
 			} else {

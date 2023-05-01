@@ -1,26 +1,26 @@
 package board
 
 const (
-	FILE_A int = iota
-	FILE_B
-	FILE_C
-	FILE_D
-	FILE_E
-	FILE_F
-	FILE_G
-	FILE_H
-	FILE_NB
+	FileA int = iota
+	FileB
+	FileC
+	FileD
+	FileE
+	FileF
+	FileG
+	FileH
+	FileNB
 )
 
 const (
-	RANK_1 int = iota
-	RANK_2
-	RANK_3
-	RANK_4
-	RANK_5
-	RANK_6
-	RANK_7
-	RANK_8
+	Rank1 int = iota
+	Rank2
+	Rank3
+	Rank4
+	Rank5
+	Rank6
+	Rank7
+	Rank8
 	RANK_NB
 )
 
