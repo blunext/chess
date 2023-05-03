@@ -21,7 +21,7 @@ const (
 	Rank6
 	Rank7
 	Rank8
-	RANK_NB
+	RankOut
 )
 
 const (

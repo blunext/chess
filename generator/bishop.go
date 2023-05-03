@@ -34,8 +34,8 @@ func bishopSE(pos int) possibleMoves {
 	var list possibleMoves
 	rank, file := rankAndFile(pos)
 	for {
-		rank -= 1
-		file += 1
+		rank--
+		file++
 		if rank < 0 || file >= 8 {
 			break
 		}
@@ -50,8 +50,8 @@ func bishopSW(pos int) possibleMoves {
 	var list possibleMoves
 	rank, file := rankAndFile(pos)
 	for {
-		rank -= 1
-		file -= 1
+		rank--
+		file--
 		if rank < 0 || file < 0 {
 			break
 		}
@@ -66,8 +66,8 @@ func bishopNE(pos int) possibleMoves {
 	var list possibleMoves
 	rank, file := rankAndFile(pos)
 	for {
-		rank += 1
-		file += 1
+		rank++
+		file++
 		if rank >= 8 || file >= 8 {
 			break
 		}
@@ -82,8 +82,8 @@ func bishopNW(pos int) possibleMoves {
 	var list possibleMoves
 	rank, file := rankAndFile(pos)
 	for {
-		rank += 1
-		file -= 1
+		rank++
+		file--
 		if rank >= 8 || file < 0 {
 			break
 		}

@@ -6,6 +6,9 @@ import (
 )
 
 func main() {
-	magic.Prepare()
+	err := magic.Prepare()
+	if err != nil {
+		panic(err)
+	}
 	generator.NewGenerator()
 }
