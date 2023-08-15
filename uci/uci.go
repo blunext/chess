@@ -9,7 +9,7 @@ import (
 )
 
 func Start() {
-	f, err := os.Create("~/Documents/projects/chess/data.txt")
+	f, err := os.Create("data.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
