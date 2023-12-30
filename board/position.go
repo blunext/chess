@@ -79,12 +79,20 @@ func createPosition(board coloredBoard) Position {
 			position.Queens.SetBit(i)
 		case King:
 			position.Kings.SetBit(i)
+		default:
+			if cp.piece != noPiece.piece {
+				panic("unhandled no piece")
+			}
 		}
 		switch cp.color {
 		case ColorWhite:
 			position.White.SetBit(i)
 		case ColorBlack:
 			position.Black.SetBit(i)
+		default:
+			if cp.color != noPiece.color {
+				panic("unhandled no color")
+			}
 		}
 	}
 	return position
