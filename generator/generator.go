@@ -14,6 +14,7 @@ func NewGenerator() GeneratedMoves {
 	moves[board.Bishop] = generateBishopMoves()
 	moves[board.Queen] = generateQueenMoves(moves[board.Rook], moves[board.Bishop])
 	moves[board.Knight] = generateKnightMoves()
+	moves[board.King] = generateKingMoves()
 	return moves
 }
 
