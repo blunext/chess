@@ -6,7 +6,7 @@ import (
 
 type steps []struct{ step []int }
 
-func generateKingMoves() PossibleMoves {
+func kingMoves() PossibleMoves {
 	knightSteps := steps{
 		{[]int{-1, -1}},
 		{[]int{-1, 0}},
@@ -20,7 +20,7 @@ func generateKingMoves() PossibleMoves {
 	return generateGenericMoves(knightSteps)
 }
 
-func generateKnightMoves() PossibleMoves {
+func knightMoves() PossibleMoves {
 	knightSteps := steps{
 		{[]int{2, -1}},
 		{[]int{1, -2}},

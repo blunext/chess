@@ -116,7 +116,7 @@ func TestBishopNW(t *testing.T) {
 }
 
 func TestGenerators(t *testing.T) {
-	moves := generateRookMoves()
+	moves := rookMoves()
 	assert.Equal(t, 64, len(moves))
 	count := 0
 	for _, possibleMoves := range moves {
@@ -124,6 +124,6 @@ func TestGenerators(t *testing.T) {
 	}
 	assert.Equal(t, 64*7*2, count)
 
-	generateQueenMoves(generateRookMoves(), generateBishopMoves())
+	queenMoves(rookMoves(), bishopMoves())
 	// todo: figure out how many bishop moves is possible and test it
 }

@@ -4,7 +4,7 @@ import (
 	"chess/board"
 )
 
-func generateRookMoves() PossibleMoves {
+func rookMoves() PossibleMoves {
 	var squareMoves = make(PossibleMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions []board.Bitboard

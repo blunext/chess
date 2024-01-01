@@ -10,15 +10,15 @@ type GeneratedMoves map[uint8]PossibleMoves
 
 func NewGenerator() GeneratedMoves {
 	moves := make(GeneratedMoves)
-	moves[board.Rook] = generateRookMoves()
-	moves[board.Bishop] = generateBishopMoves()
-	moves[board.Queen] = generateQueenMoves(moves[board.Rook], moves[board.Bishop])
-	moves[board.Knight] = generateKnightMoves()
-	moves[board.King] = generateKingMoves()
+	moves[board.Rook] = rookMoves()
+	moves[board.Bishop] = bishopMoves()
+	moves[board.Queen] = queenMoves(moves[board.Rook], moves[board.Bishop])
+	moves[board.Knight] = knightMoves()
+	moves[board.King] = kingMoves()
 	return moves
 }
 
-func generateQueenMoves(rookMoves, bishopMoves PossibleMoves) PossibleMoves {
+func queenMoves(rookMoves, bishopMoves PossibleMoves) PossibleMoves {
 	var squareMoves = make(PossibleMoves)
 	var pos board.Bitboard
 	for pos = 0; pos < 64; pos++ {
