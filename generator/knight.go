@@ -1,6 +1,8 @@
 package generator
 
-import "chess/board"
+import (
+	"chess/board"
+)
 
 func generateKnightMoves() knightMoves {
 	knightSteps := []struct {
@@ -26,13 +28,16 @@ func generateKnightMoves() knightMoves {
 			rank, file := rankAndFile(pos)
 			file += knight.step[0]
 			rank += knight.step[1]
-			if rank > 0 && rank < 8 && file > 0 && file < 8 {
+			if rank >= 0 && rank < 8 && file >= 0 && file < 8 {
 				var newPos board.Bitboard
 				n := (7-rank)*8 + file
 				newPos.SetBit(n)
 				list = append(list, newPos)
 			}
 		}
+		//if pos < 8 {
+		//	fmt.Println(board.Flat(list).Pretty())
+		//}
 		if len(list) > 0 {
 			knightMoves[board.Bitboard(pos)] = exactSize(list)
 		}
