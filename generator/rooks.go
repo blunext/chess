@@ -4,25 +4,25 @@ import (
 	"chess/board"
 )
 
-func generateRookMoves() sliderMoves {
-	var squareMoves = make(sliderMoves)
+func generateRookMoves() PossibleMoves {
+	var squareMoves = make(PossibleMoves)
 	for pos := 0; pos < 64; pos++ {
-		var directions []possibleMoves
+		var directions []board.Bitboard
 		moves := rookDown(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves)
+			directions = append(directions, moves...)
 		}
 		moves = rookUp(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves)
+			directions = append(directions, moves...)
 		}
 		moves = rookRight(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves)
+			directions = append(directions, moves...)
 		}
 		moves = rookLeft(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves)
+			directions = append(directions, moves...)
 		}
 
 		squareMoves[board.Bitboard(pos)] = exactSize(directions)
@@ -30,8 +30,8 @@ func generateRookMoves() sliderMoves {
 	return squareMoves
 }
 
-func rookDown(pos int) possibleMoves {
-	var list possibleMoves
+func rookDown(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank := rank(pos)
 	for i := 1; i <= rank; i++ {
 		var newPos board.Bitboard
@@ -41,8 +41,8 @@ func rookDown(pos int) possibleMoves {
 	return exactSize(list)
 }
 
-func rookUp(pos int) possibleMoves {
-	var list possibleMoves
+func rookUp(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank := rank(pos)
 	for i := 1; i < 8-rank; i++ {
 		var newPos board.Bitboard
@@ -52,8 +52,8 @@ func rookUp(pos int) possibleMoves {
 	return exactSize(list)
 }
 
-func rookRight(pos int) possibleMoves {
-	var list possibleMoves
+func rookRight(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	file := file(pos) + 1
 	for i := 1; i <= 8-file; i++ {
 		var newPos board.Bitboard
@@ -63,8 +63,8 @@ func rookRight(pos int) possibleMoves {
 	return exactSize(list)
 }
 
-func rookLeft(pos int) possibleMoves {
-	var list possibleMoves
+func rookLeft(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	file := file(pos) + 1
 	for i := 1; i < file; i++ {
 		var newPos board.Bitboard

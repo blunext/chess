@@ -4,27 +4,24 @@ import (
 	"chess/board"
 )
 
-type possibleMoves []board.Bitboard
+type PossibleMoves map[board.Bitboard][]board.Bitboard
 
-type sliderMoves map[board.Bitboard][]possibleMoves
-
-type GeneratedMoves map[uint8]sliderMoves
-
-type knightMoves map[board.Bitboard]possibleMoves
+type GeneratedMoves map[uint8]PossibleMoves
 
 func NewGenerator() GeneratedMoves {
 	moves := make(GeneratedMoves)
 	moves[board.Rook] = generateRookMoves()
 	moves[board.Bishop] = generateBishopMoves()
 	moves[board.Queen] = generateQueenMoves(moves[board.Rook], moves[board.Bishop])
+	moves[board.Knight] = generateKnightMoves()
 	return moves
 }
 
-func generateQueenMoves(rookMoves, bishopMoves sliderMoves) sliderMoves {
-	var squareMoves = make(sliderMoves)
+func generateQueenMoves(rookMoves, bishopMoves PossibleMoves) PossibleMoves {
+	var squareMoves = make(PossibleMoves)
 	var pos board.Bitboard
 	for pos = 0; pos < 64; pos++ {
-		var directions []possibleMoves
+		var directions []board.Bitboard
 		directions = append(directions, rookMoves[pos]...)
 		directions = append(directions, bishopMoves[pos]...)
 		squareMoves[pos] = exactSize(directions)

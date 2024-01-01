@@ -4,7 +4,7 @@ import (
 	"chess/board"
 )
 
-func generateKnightMoves() knightMoves {
+func generateKnightMoves() PossibleMoves {
 	knightSteps := []struct {
 		step []int
 	}{
@@ -20,10 +20,10 @@ func generateKnightMoves() knightMoves {
 		{[]int{2, 1}},
 		{[]int{1, 2}},
 	}
-	knightMoves := make(knightMoves)
+	knightMoves := make(PossibleMoves)
 
 	for pos := 0; pos < 64; pos++ {
-		var list possibleMoves
+		var list []board.Bitboard
 		for _, knight := range knightSteps {
 			rank, file := rankAndFile(pos)
 			file += knight.step[0]
