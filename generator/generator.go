@@ -6,7 +6,7 @@ import (
 
 type PossibleMoves map[board.Bitboard][]board.Bitboard
 
-type GeneratedMoves map[uint8]PossibleMoves
+type GeneratedMoves map[board.Piece]PossibleMoves
 
 func NewGenerator() GeneratedMoves {
 	moves := make(GeneratedMoves)

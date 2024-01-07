@@ -24,8 +24,11 @@ const (
 	RankOut
 )
 
+type Piece uint8
+type Color uint8
+
 const (
-	Empty uint8 = iota
+	Empty Piece = iota
 	Pawn
 	Knight
 	Bishop
@@ -33,8 +36,8 @@ const (
 	Queen
 	King
 
-	ColorWhite uint8 = 0
-	ColorBlack uint8 = 1
+	ColorWhite Color = 0
+	ColorBlack Color = 1
 )
 const (
 	CastleWhiteKingSide = 1 << iota
@@ -53,8 +56,8 @@ type Position struct {
 }
 
 type coloredPiece struct {
-	piece uint8
-	color uint8
+	piece Piece
+	color Color
 }
 
 type coloredBoard [64]coloredPiece
