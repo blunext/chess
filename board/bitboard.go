@@ -56,7 +56,7 @@ func squareIndex(f, r int) int {
 	return (r << 3) + f
 }
 
-func (b Bitboard) Pretty() string {
+func (b *Bitboard) Pretty() string {
 	s := "+---+---+---+---+---+---+---+---+\n"
 	for r := Rank8; r >= Rank1; r-- {
 		for f := FileA; f <= FileH; f++ {
@@ -78,4 +78,17 @@ func Flat(boards []Bitboard) Bitboard {
 		flatten = flatten | b
 	}
 	return flatten
+}
+
+// ToSlice takes a bitboard and returns a slice of bitboards
+// where each bitboard has a single bit set
+func (b *Bitboard) ToSlice() []Bitboard {
+	slice := []Bitboard{}
+	for i := 0; i < 64; i++ {
+		mask := Bitboard(1 << i)
+		if *b&mask != 0 {
+			slice = append(slice, mask)
+		}
+	}
+	return slice
 }
