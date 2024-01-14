@@ -100,3 +100,23 @@ func createPosition(board coloredBoard) Position {
 	}
 	return position
 }
+
+func (position Position) filterColor() Position {
+	p := position
+	if p.WhiteMove {
+		p.Pawns &= p.White
+		p.Knights &= p.White
+		p.Bishops &= p.White
+		p.Rooks &= p.White
+		p.Queens &= p.White
+		p.Kings &= p.White
+		return p
+	}
+	p.Pawns &= p.Black
+	p.Knights &= p.Black
+	p.Bishops &= p.Black
+	p.Rooks &= p.Black
+	p.Queens &= p.Black
+	p.Kings &= p.Black
+	return p
+}

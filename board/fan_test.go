@@ -73,7 +73,10 @@ func TestPosition(t *testing.T) {
 
 	assert.Equal(t, uint8(CastleWhiteKingSide|CastleWhiteQueenSide|CastleBlackKingSide|CastleBlackQueenSide), position.CastleSide, "castling failed")
 	assert.Equal(t, Bitboard(0), position.EnPassant, "en passant failed")
+	assert.Truef(t, position.WhiteMove, "white move")
 
+	position = createPositionFormFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1")
+	assert.Falsef(t, position.WhiteMove, "black move")
 }
 
 func TestCastling(t *testing.T) {

@@ -83,6 +83,7 @@ func Flat(boards []Bitboard) Bitboard {
 // ToSlice takes a bitboard and returns a slice of bitboards
 // where each bitboard has a single bit set
 func (b *Bitboard) ToSlice() []Bitboard {
+	// todo: consider nil slice
 	slice := []Bitboard{}
 	for i := 0; i < 64; i++ {
 		mask := Bitboard(1 << i)
