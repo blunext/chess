@@ -56,6 +56,12 @@ func squareIndex(f, r int) int {
 	return (r << 3) + f
 }
 
+func IndexToBitBoard(i int) Bitboard {
+	b := Bitboard(0)
+	b.SetBit(i)
+	return b
+}
+
 func (b *Bitboard) Pretty() string {
 	s := "+---+---+---+---+---+---+---+---+\n"
 	for r := Rank8; r >= Rank1; r-- {
@@ -72,7 +78,7 @@ func (b *Bitboard) Pretty() string {
 	return s
 }
 
-func Flat(boards []Bitboard) Bitboard {
+func toFlat(boards ...Bitboard) Bitboard {
 	var flatten Bitboard
 	for _, b := range boards {
 		flatten = flatten | b

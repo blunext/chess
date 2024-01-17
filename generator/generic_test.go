@@ -8,8 +8,8 @@ import (
 
 func TestGenericMoves(t *testing.T) {
 	tests := []struct {
-		pos   board.Bitboard
-		fun   func() SquareMoves
+		pos   int
+		fun   func() board.SquareMoves
 		moves []board.Bitboard
 	}{
 		{0, knightMoves, []board.Bitboard{0x20000, 0x400}},
@@ -26,7 +26,7 @@ func TestGenericMoves(t *testing.T) {
 	for _, test := range tests {
 		t.Run("Moves", func(t *testing.T) {
 			squares := test.fun()
-			moves := squares[test.pos]
+			moves := squares[board.IndexToBitBoard(test.pos)]
 			assert.Equal(t, len(test.moves), len(moves))
 			for _, i := range test.moves {
 				assert.Contains(t, moves, i)

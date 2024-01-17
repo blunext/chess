@@ -49,7 +49,7 @@ func TestColoredBoard(t *testing.T) {
 }
 
 func TestPosition(t *testing.T) {
-	position := createPositionFormFEN(InitialPosition)
+	position := CreatePositionFormFEN(InitialPosition)
 	tests := []struct {
 		expectedPattern Bitboard
 		piecePattern    Bitboard
@@ -75,7 +75,7 @@ func TestPosition(t *testing.T) {
 	assert.Equal(t, Bitboard(0), position.EnPassant, "en passant failed")
 	assert.Truef(t, position.WhiteMove, "white move")
 
-	position = createPositionFormFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1")
+	position = CreatePositionFormFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1")
 	assert.Falsef(t, position.WhiteMove, "black move")
 }
 

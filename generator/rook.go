@@ -4,8 +4,8 @@ import (
 	"chess/board"
 )
 
-func generateRookMoves() SliderSquareMoves {
-	var squareMoves = make(SliderSquareMoves)
+func generateRookMoves() board.SliderSquareMoves {
+	var squareMoves = make(board.SliderSquareMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions [][]board.Bitboard
 		moves := rookDown(pos)
@@ -25,7 +25,7 @@ func generateRookMoves() SliderSquareMoves {
 			directions = append(directions, moves)
 		}
 
-		squareMoves[board.Bitboard(pos)] = exactSize(directions)
+		squareMoves[board.IndexToBitBoard(pos)] = exactSize(directions)
 	}
 	return squareMoves
 }

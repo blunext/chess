@@ -17,13 +17,13 @@ func TestPosition_filterColor(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			board := createPositionFormFEN(tc.board).filterColor()
+			board := CreatePositionFormFEN(tc.board).filterColor()
 			if board.WhiteMove { // we don't clear the color position in filterColor()
 				board.Black = 0
 			} else {
 				board.White = 0
 			}
-			expected := createPositionFormFEN(tc.expected)
+			expected := CreatePositionFormFEN(tc.expected)
 			assert.Equalf(t, expected, board, "filterColor()")
 		})
 	}

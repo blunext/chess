@@ -26,7 +26,7 @@ var rune2Piece = map[rune]coloredPiece{
 	'k': {King, ColorBlack},
 }
 
-func createPositionFormFEN(fen string) Position {
+func CreatePositionFormFEN(fen string) Position {
 	fields := strings.Split(fen, " ")
 	if len(fields) != 6 {
 		log.Fatal("bad fen")

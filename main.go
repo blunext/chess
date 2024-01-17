@@ -1,7 +1,7 @@
 package main
 
 import (
-	"chess/generator"
+	"chess/engine"
 	"chess/magic"
 	"chess/uci"
 )
@@ -11,6 +11,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	generator.NewGenerator()
+	engine.Run()
 	uci.Start()
 }

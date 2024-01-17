@@ -1,5 +1,10 @@
 package board
 
+type SquareMoves map[Bitboard][]Bitboard
+type Generics map[Piece]SquareMoves
+type SliderSquareMoves map[Bitboard][][]Bitboard
+type Sliders map[Piece]SliderSquareMoves
+
 const (
 	FileA int = iota
 	FileB
@@ -119,4 +124,29 @@ func (position Position) filterColor() Position {
 	p.Queens &= p.Black
 	p.Kings &= p.Black
 	return p
+}
+
+func (position Position) ToFlat() Bitboard {
+	return toFlat(position.Bishops, position.Knights, position.Rooks, position.Queens, position.Kings, position.Pawns)
+}
+
+func (position Position) AllBishops(sliders Sliders) *Position {
+	pos := position
+	bishops := pos.filterColor().Bishops
+	if bishops == 0 {
+		return nil
+	}
+	flat := position.ToFlat()
+	for _, bitBoard := range bishops.ToSlice() {
+		directions := sliders[Bishop][bitBoard]
+		for _, direction := range directions {
+			for _, move := range direction {
+				if flat&move == move {
+					break
+				}
+				pos.Bishops |= move
+			}
+		}
+	}
+	return &pos
 }
