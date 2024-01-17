@@ -11,33 +11,33 @@ func TestColoredBoard(t *testing.T) {
 		piece coloredPiece
 		index int
 	}{
-		{coloredPiece{Rook, ColorBlack}, 0},
-		{coloredPiece{Knight, ColorBlack}, 1},
-		{coloredPiece{Bishop, ColorBlack}, 2},
-		{coloredPiece{Queen, ColorBlack}, 3},
-		{coloredPiece{King, ColorBlack}, 4},
-		{coloredPiece{Bishop, ColorBlack}, 5},
-		{coloredPiece{Knight, ColorBlack}, 6},
-		{coloredPiece{Rook, ColorBlack}, 7},
-		{coloredPiece{Pawn, ColorBlack}, 8},
-		{coloredPiece{Pawn, ColorBlack}, 12},
-		{coloredPiece{Pawn, ColorBlack}, 15},
+		{coloredPiece{Rook, ColorWhite}, 0},
+		{coloredPiece{Knight, ColorWhite}, 1},
+		{coloredPiece{Bishop, ColorWhite}, 2},
+		{coloredPiece{Queen, ColorWhite}, 3},
+		{coloredPiece{King, ColorWhite}, 4},
+		{coloredPiece{Bishop, ColorWhite}, 5},
+		{coloredPiece{Knight, ColorWhite}, 6},
+		{coloredPiece{Rook, ColorWhite}, 7},
+		{coloredPiece{Pawn, ColorWhite}, 8},
+		{coloredPiece{Pawn, ColorWhite}, 12},
+		{coloredPiece{Pawn, ColorWhite}, 15},
 		{noPiece, 16},
 		{noPiece, 16},
 		{noPiece, 26},
 		{noPiece, 27},
 		{noPiece, 39},
 		{noPiece, 47},
-		{coloredPiece{Pawn, ColorWhite}, 48},
-		{coloredPiece{Pawn, ColorWhite}, 55},
-		{coloredPiece{Rook, ColorWhite}, 56},
-		{coloredPiece{Knight, ColorWhite}, 57},
-		{coloredPiece{Bishop, ColorWhite}, 58},
-		{coloredPiece{Queen, ColorWhite}, 59},
-		{coloredPiece{King, ColorWhite}, 60},
-		{coloredPiece{Bishop, ColorWhite}, 61},
-		{coloredPiece{Knight, ColorWhite}, 62},
-		{coloredPiece{Rook, ColorWhite}, 63},
+		{coloredPiece{Pawn, ColorBlack}, 48},
+		{coloredPiece{Pawn, ColorBlack}, 55},
+		{coloredPiece{Rook, ColorBlack}, 56},
+		{coloredPiece{Knight, ColorBlack}, 57},
+		{coloredPiece{Bishop, ColorBlack}, 58},
+		{coloredPiece{Queen, ColorBlack}, 59},
+		{coloredPiece{King, ColorBlack}, 60},
+		{coloredPiece{Bishop, ColorBlack}, 61},
+		{coloredPiece{Knight, ColorBlack}, 62},
+		{coloredPiece{Rook, ColorBlack}, 63},
 	}
 
 	cb := createColoredBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
@@ -61,8 +61,8 @@ func TestPosition(t *testing.T) {
 		{0x800000000000008, position.Queens},
 		{0x1000000000000010, position.Kings},
 
-		{0xffff000000000000, position.White},
-		{0xffff, position.Black},
+		{0xffff000000000000, position.Black},
+		{0xffff, position.White},
 	}
 
 	for _, test := range tests {
@@ -77,6 +77,21 @@ func TestPosition(t *testing.T) {
 
 	position = CreatePositionFormFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1")
 	assert.Falsef(t, position.WhiteMove, "black move")
+
+	position = CreatePositionFormFEN("rnbqkbnr/pppp1ppp/4p3/8/8/3P4/PPP1PPPP/RNBQKBNR w KQkq - 0 1")
+	tests = []struct {
+		expectedPattern Bitboard
+		piecePattern    Bitboard
+	}{
+		{0xef10000008f700, position.Pawns},
+		{0x8f7ff, position.White},
+		{0xffef100000000000, position.Black},
+	}
+	for _, test := range tests {
+		t.Run("patterns", func(t *testing.T) {
+			assert.Equal(t, test.expectedPattern, test.piecePattern)
+		})
+	}
 }
 
 func TestCastling(t *testing.T) {

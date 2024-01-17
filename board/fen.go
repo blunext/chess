@@ -2,6 +2,7 @@ package board
 
 import (
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -76,6 +77,7 @@ func castleAbility(c string) uint8 {
 
 func createColoredBoard(piecePlacement string) coloredBoard {
 	ranks := strings.Split(piecePlacement, "/")
+	slices.Reverse(ranks)
 	if len(ranks) != 8 {
 		log.Fatal("bad ranks no")
 	}
