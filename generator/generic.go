@@ -8,7 +8,7 @@ import (
 
 type steps []struct{ step []int }
 
-func kingMoves() PossibleMoves {
+func kingMoves() SquareMoves {
 	knightSteps := steps{
 		{[]int{-1, -1}},
 		{[]int{-1, 0}},
@@ -22,7 +22,7 @@ func kingMoves() PossibleMoves {
 	return generateGenericMoves(knightSteps)
 }
 
-func knightMoves() PossibleMoves {
+func knightMoves() SquareMoves {
 	knightSteps := steps{
 		{[]int{2, -1}},
 		{[]int{1, -2}},
@@ -35,8 +35,8 @@ func knightMoves() PossibleMoves {
 	}
 	return generateGenericMoves(knightSteps)
 }
-func generateGenericMoves(steps steps) PossibleMoves {
-	knightMoves := make(PossibleMoves)
+func generateGenericMoves(steps steps) SquareMoves {
+	knightMoves := make(SquareMoves)
 
 	for pos := 0; pos < 64; pos++ {
 		var list []board.Bitboard

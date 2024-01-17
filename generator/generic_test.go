@@ -9,7 +9,7 @@ import (
 func TestGenericMoves(t *testing.T) {
 	tests := []struct {
 		pos   board.Bitboard
-		fun   func() PossibleMoves
+		fun   func() SquareMoves
 		moves []board.Bitboard
 	}{
 		{0, knightMoves, []board.Bitboard{0x20000, 0x400}},

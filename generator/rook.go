@@ -4,10 +4,10 @@ import (
 	"chess/board"
 )
 
-func generateRookMoves() MovesArray {
-	var squareMoves = make(MovesArray)
+func generateRookMoves() SliderSquareMoves {
+	var squareMoves = make(SliderSquareMoves)
 	for pos := 0; pos < 64; pos++ {
-		var directions []Moves
+		var directions [][]board.Bitboard
 		moves := rookDown(pos)
 		if len(moves) != 0 {
 			directions = append(directions, moves)
@@ -30,8 +30,8 @@ func generateRookMoves() MovesArray {
 	return squareMoves
 }
 
-func rookDown(pos int) Moves {
-	var list Moves
+func rookDown(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank := rank(pos)
 	for i := 1; i <= rank; i++ {
 		var newPos board.Bitboard
@@ -41,8 +41,8 @@ func rookDown(pos int) Moves {
 	return exactSize(list)
 }
 
-func rookUp(pos int) Moves {
-	var list Moves
+func rookUp(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank := rank(pos)
 	for i := 1; i < 8-rank; i++ {
 		var newPos board.Bitboard
@@ -52,8 +52,8 @@ func rookUp(pos int) Moves {
 	return exactSize(list)
 }
 
-func rookRight(pos int) Moves {
-	var list Moves
+func rookRight(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	file := file(pos) + 1
 	for i := 1; i <= 8-file; i++ {
 		var newPos board.Bitboard
@@ -63,8 +63,8 @@ func rookRight(pos int) Moves {
 	return exactSize(list)
 }
 
-func rookLeft(pos int) Moves {
-	var list Moves
+func rookLeft(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	file := file(pos) + 1
 	for i := 1; i < file; i++ {
 		var newPos board.Bitboard

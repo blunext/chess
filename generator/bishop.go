@@ -4,10 +4,10 @@ import (
 	"chess/board"
 )
 
-func generateBishopMoves() MovesArray {
-	var squareMoves = make(MovesArray)
+func generateBishopMoves() SliderSquareMoves {
+	var squareMoves = make(SliderSquareMoves)
 	for pos := 0; pos < 64; pos++ {
-		var directions []Moves
+		var directions [][]board.Bitboard
 		moves := bishopSE(pos)
 		if len(moves) != 0 {
 			directions = append(directions, moves)
@@ -30,8 +30,8 @@ func generateBishopMoves() MovesArray {
 	return squareMoves
 }
 
-func bishopSE(pos int) Moves {
-	var list Moves
+func bishopSE(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank, file := rankAndFile(pos)
 	for {
 		rank--
@@ -46,8 +46,8 @@ func bishopSE(pos int) Moves {
 	return exactSize(list)
 }
 
-func bishopSW(pos int) Moves {
-	var list Moves
+func bishopSW(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank, file := rankAndFile(pos)
 	for {
 		rank--
@@ -62,8 +62,8 @@ func bishopSW(pos int) Moves {
 	return exactSize(list)
 }
 
-func bishopNE(pos int) Moves {
-	var list Moves
+func bishopNE(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank, file := rankAndFile(pos)
 	for {
 		rank++
@@ -78,8 +78,8 @@ func bishopNE(pos int) Moves {
 	return exactSize(list)
 }
 
-func bishopNW(pos int) Moves {
-	var list Moves
+func bishopNW(pos int) []board.Bitboard {
+	var list []board.Bitboard
 	rank, file := rankAndFile(pos)
 	for {
 		rank++
