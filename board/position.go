@@ -1,5 +1,7 @@
 package board
 
+import "log"
+
 type SquareMoves map[Bitboard][]Bitboard
 type Generics map[Piece]SquareMoves
 type SliderSquareMoves map[Bitboard][][]Bitboard
@@ -130,23 +132,25 @@ func (position Position) ToFlat() Bitboard {
 	return toFlat(position.Bishops, position.Knights, position.Rooks, position.Queens, position.Kings, position.Pawns)
 }
 
-func (position Position) AllBishops(sliders Sliders) []Position {
+func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 	var positions []Position
-	bishops := position.filterColor().Bishops
-	if bishops == 0 {
+	color := position.filterColor()           // take only the color to move
+	piecesInColorToMove := color.getPiece(pc) // get the pieces of that color
+	if *piecesInColorToMove == 0 {
 		return nil
 	}
-	allFlat := position.ToFlat()
-	for _, bitBoard := range bishops.ToSlice() {
-		directions := sliders[Bishop][bitBoard]
+	allFlat := position.ToFlat() // get all the pieces on the board flattened to bitboard
+	for _, bitBoard := range piecesInColorToMove.ToSlice() {
+		directions := sliders[pc][bitBoard]
 		for _, direction := range directions {
 			for _, move := range direction {
-				if allFlat&move == move {
+				if allFlat&move == move { // if there is a piece in the way, stop
 					break
 				}
 				pos := position
-				pos.Bishops &^= bitBoard
-				pos.Bishops |= move
+				piece := pos.getPiece(pc) // get the piece reference
+				*piece &^= bitBoard       // remove the piece from the board
+				*piece |= move            // add the piece to the new position
 				positions = append(positions, pos)
 			}
 		}
@@ -154,23 +158,22 @@ func (position Position) AllBishops(sliders Sliders) []Position {
 	return positions
 }
 
-//
-//func (position *Position) getPiece(piece Piece) *Bitboard {
-//	switch piece {
-//	case Pawn:
-//		return &position.Pawns
-//	case Knight:
-//		return &position.Knights
-//	case Bishop:
-//		return &position.Bishops
-//	case Rook:
-//		return &position.Rooks
-//	case Queen:
-//		return &position.Queens
-//	case King:
-//		return &position.Kings
-//	default:
-//		log.Fatal("unhandled piece")
-//		return nil
-//	}
-//}
+func (position *Position) getPiece(piece Piece) *Bitboard {
+	switch piece {
+	case Pawn:
+		return &position.Pawns
+	case Knight:
+		return &position.Knights
+	case Bishop:
+		return &position.Bishops
+	case Rook:
+		return &position.Rooks
+	case Queen:
+		return &position.Queens
+	case King:
+		return &position.Kings
+	default:
+		log.Fatal("unhandled piece")
+		return nil
+	}
+}
