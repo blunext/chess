@@ -130,23 +130,47 @@ func (position Position) ToFlat() Bitboard {
 	return toFlat(position.Bishops, position.Knights, position.Rooks, position.Queens, position.Kings, position.Pawns)
 }
 
-func (position Position) AllBishops(sliders Sliders) *Position {
-	pos := position
-	bishops := pos.filterColor().Bishops
+func (position Position) AllBishops(sliders Sliders) []Position {
+	var positions []Position
+	bishops := position.filterColor().Bishops
 	if bishops == 0 {
 		return nil
 	}
-	flat := position.ToFlat()
+	allFlat := position.ToFlat()
 	for _, bitBoard := range bishops.ToSlice() {
 		directions := sliders[Bishop][bitBoard]
 		for _, direction := range directions {
 			for _, move := range direction {
-				if flat&move == move {
+				if allFlat&move == move {
 					break
 				}
+				pos := position
+				pos.Bishops &^= bitBoard
 				pos.Bishops |= move
+				positions = append(positions, pos)
 			}
 		}
 	}
-	return &pos
+	return positions
 }
+
+//
+//func (position *Position) getPiece(piece Piece) *Bitboard {
+//	switch piece {
+//	case Pawn:
+//		return &position.Pawns
+//	case Knight:
+//		return &position.Knights
+//	case Bishop:
+//		return &position.Bishops
+//	case Rook:
+//		return &position.Rooks
+//	case Queen:
+//		return &position.Queens
+//	case King:
+//		return &position.Kings
+//	default:
+//		log.Fatal("unhandled piece")
+//		return nil
+//	}
+//}
