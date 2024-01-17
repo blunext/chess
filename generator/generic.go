@@ -4,6 +4,8 @@ import (
 	"chess/board"
 )
 
+//type knightMoves map[board.Bitboard]Moves
+
 type steps []struct{ step []int }
 
 func kingMoves() PossibleMoves {
@@ -49,9 +51,6 @@ func generateGenericMoves(steps steps) PossibleMoves {
 				list = append(list, newPos)
 			}
 		}
-		//if pos < 8 {
-		//	fmt.Println(board.Flat(list).Pretty())
-		//}
 		if len(list) > 0 {
 			knightMoves[board.Bitboard(pos)] = exactSize(list)
 		}

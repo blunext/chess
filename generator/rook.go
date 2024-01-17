@@ -4,25 +4,25 @@ import (
 	"chess/board"
 )
 
-func rookMoves() PossibleMoves {
-	var squareMoves = make(PossibleMoves)
+func generateRookMoves() MovesArray {
+	var squareMoves = make(MovesArray)
 	for pos := 0; pos < 64; pos++ {
-		var directions []board.Bitboard
+		var directions []Moves
 		moves := rookDown(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves...)
+			directions = append(directions, moves)
 		}
 		moves = rookUp(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves...)
+			directions = append(directions, moves)
 		}
 		moves = rookRight(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves...)
+			directions = append(directions, moves)
 		}
 		moves = rookLeft(pos)
 		if len(moves) != 0 {
-			directions = append(directions, moves...)
+			directions = append(directions, moves)
 		}
 
 		squareMoves[board.Bitboard(pos)] = exactSize(directions)
@@ -30,8 +30,8 @@ func rookMoves() PossibleMoves {
 	return squareMoves
 }
 
-func rookDown(pos int) []board.Bitboard {
-	var list []board.Bitboard
+func rookDown(pos int) Moves {
+	var list Moves
 	rank := rank(pos)
 	for i := 1; i <= rank; i++ {
 		var newPos board.Bitboard
@@ -41,8 +41,8 @@ func rookDown(pos int) []board.Bitboard {
 	return exactSize(list)
 }
 
-func rookUp(pos int) []board.Bitboard {
-	var list []board.Bitboard
+func rookUp(pos int) Moves {
+	var list Moves
 	rank := rank(pos)
 	for i := 1; i < 8-rank; i++ {
 		var newPos board.Bitboard
@@ -52,8 +52,8 @@ func rookUp(pos int) []board.Bitboard {
 	return exactSize(list)
 }
 
-func rookRight(pos int) []board.Bitboard {
-	var list []board.Bitboard
+func rookRight(pos int) Moves {
+	var list Moves
 	file := file(pos) + 1
 	for i := 1; i <= 8-file; i++ {
 		var newPos board.Bitboard
@@ -63,8 +63,8 @@ func rookRight(pos int) []board.Bitboard {
 	return exactSize(list)
 }
 
-func rookLeft(pos int) []board.Bitboard {
-	var list []board.Bitboard
+func rookLeft(pos int) Moves {
+	var list Moves
 	file := file(pos) + 1
 	for i := 1; i < file; i++ {
 		var newPos board.Bitboard

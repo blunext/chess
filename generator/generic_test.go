@@ -1,10 +1,9 @@
 package generator
 
 import (
+	"chess/board"
 	"github.com/stretchr/testify/assert"
 	"testing"
-
-	"chess/board"
 )
 
 func TestGenericMoves(t *testing.T) {
