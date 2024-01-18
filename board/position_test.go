@@ -12,7 +12,7 @@ func TestPosition_filterColor(t *testing.T) {
 		expected string
 	}{
 		{"initial position", InitialPosition, "8/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"},
-		{"initial position", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "rnbqkbnr/pppppppp/8/8/8/8/8/8 b KQkq - 0 1"},
+		{"black move", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "rnbqkbnr/pppppppp/8/8/8/8/8/8 b KQkq - 0 1"},
 	}
 
 	for _, tc := range tests {

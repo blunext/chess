@@ -99,3 +99,7 @@ func (b *Bitboard) ToSlice() []Bitboard {
 	}
 	return slice
 }
+
+func (b *Bitboard) Hex() string {
+	return fmt.Sprintf("0x%x", *b)
+}

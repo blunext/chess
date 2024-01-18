@@ -1,6 +1,8 @@
 package board
 
-import "log"
+import (
+	"log"
+)
 
 type SquareMoves map[Bitboard][]Bitboard
 type Generics map[Piece]SquareMoves
@@ -135,7 +137,7 @@ func (position Position) ToFlat() Bitboard {
 func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 	var positions []Position
 	color := position.filterColor()           // take only the color to move
-	piecesInColorToMove := color.getPiece(pc) // get the pieces of that color
+	piecesInColorToMove := color.GetPiece(pc) // get the pieces of that color
 	if *piecesInColorToMove == 0 {
 		return nil
 	}
@@ -148,9 +150,11 @@ func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 					break
 				}
 				pos := position
-				piece := pos.getPiece(pc) // get the piece reference
+				piece := pos.GetPiece(pc) // get the piece reference
 				*piece &^= bitBoard       // remove the piece from the board
 				*piece |= move            // add the piece to the new position
+				//fmt.Println(piece.Hex())
+				//fmt.Println(piece.Pretty())
 				positions = append(positions, pos)
 			}
 		}
@@ -158,7 +162,31 @@ func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 	return positions
 }
 
-func (position *Position) getPiece(piece Piece) *Bitboard {
+func (position Position) AllGenerics(generics Generics, pc Piece) []Position {
+	var positions []Position
+	color := position.filterColor()           // take only the color to move
+	piecesInColorToMove := color.GetPiece(pc) // get the pieces of that color
+	if *piecesInColorToMove == 0 {
+		return nil
+	}
+	allFlat := position.ToFlat() // get all the pieces on the board flattened to bitboard
+	for _, bitBoard := range piecesInColorToMove.ToSlice() {
+		moves := generics[pc][bitBoard]
+		for _, move := range moves {
+			if allFlat&move == move { // if there is a piece in the way, stop
+				break
+			}
+			pos := position
+			piece := pos.GetPiece(pc) // get the piece reference
+			*piece &^= bitBoard       // remove the piece from the board
+			*piece |= move            // add the piece to the new position
+			positions = append(positions, pos)
+		}
+	}
+	return positions
+}
+
+func (position *Position) GetPiece(piece Piece) *Bitboard {
 	switch piece {
 	case Pawn:
 		return &position.Pawns
