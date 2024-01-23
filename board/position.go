@@ -130,10 +130,6 @@ func (position Position) filterColor() Position {
 	return p
 }
 
-func (position Position) ToFlat() Bitboard {
-	return toFlat(position.Bishops, position.Knights, position.Rooks, position.Queens, position.Kings, position.Pawns)
-}
-
 func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 	var positions []Position
 	color := position.filterColor()           // take only the color to move
@@ -141,7 +137,8 @@ func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 	if *piecesInColorToMove == 0 {
 		return nil
 	}
-	allFlat := position.ToFlat() // get all the pieces on the board flattened to bitboard
+	// get all the pieces on the board flattened to bitboard
+	allFlat := position.Bishops | position.Knights | position.Rooks | position.Queens | position.Kings | position.Pawns
 	for _, bitBoard := range piecesInColorToMove.ToSlice() {
 		directions := sliders[pc][bitBoard]
 		for _, direction := range directions {
@@ -169,7 +166,8 @@ func (position Position) AllGenerics(generics Generics, pc Piece) []Position {
 	if *piecesInColorToMove == 0 {
 		return nil
 	}
-	allFlat := position.ToFlat() // get all the pieces on the board flattened to bitboard
+	// get all the pieces on the board flattened to bitboard
+	allFlat := position.Bishops | position.Knights | position.Rooks | position.Queens | position.Kings | position.Pawns
 	for _, bitBoard := range piecesInColorToMove.ToSlice() {
 		moves := generics[pc][bitBoard]
 		for _, move := range moves {
