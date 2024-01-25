@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPosition_AllSliders(t *testing.T) {
+func TestPosition_AllLegalMoves(t *testing.T) {
 	tests := []struct {
 		name     string
 		board    string
@@ -25,8 +25,8 @@ func TestPosition_AllSliders(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			position := board.CreatePositionFormFEN(tc.board)
-			sliders, _ := generator.NewGenerator()
-			positions := position.AllSliders(sliders, board.Bishop)
+			pieceMoves := generator.NewGenerator()
+			positions := position.AllLegalMoves(pieceMoves, board.Bishop)
 			if tc.expected == nil {
 				assert.Nil(t, positions)
 				return

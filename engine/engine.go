@@ -8,6 +8,6 @@ import (
 func Run() {
 	//position := board.CreatePositionFormFEN(board.InitialPosition)
 	position := board.CreatePositionFormFEN("rnbqkbnr/pppp1ppp/4p3/8/8/3P4/PPP1PPPP/RNBQKBNR w KQkq - 0 1")
-	sliders, _ := generator.NewGenerator()
-	position.AllSliders(sliders, board.Bishop)
+	pieceMoves := generator.NewGenerator()
+	position.AllLegalMoves(pieceMoves, board.Bishop)
 }

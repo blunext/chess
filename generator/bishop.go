@@ -4,8 +4,8 @@ import (
 	"chess/board"
 )
 
-func generateBishopMoves() board.SliderSquareMoves {
-	var squareMoves = make(board.SliderSquareMoves)
+func generateBishopMoves() board.SquareMoves {
+	var squareMoves = make(board.SquareMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions [][]board.Bitboard
 		moves := bishopSE(pos)

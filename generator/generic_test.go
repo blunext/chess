@@ -27,9 +27,9 @@ func TestGenericMoves(t *testing.T) {
 		t.Run("Moves", func(t *testing.T) {
 			squares := test.fun()
 			moves := squares[board.IndexToBitBoard(test.pos)]
-			assert.Equal(t, len(test.moves), len(moves))
+			assert.Equal(t, len(test.moves), len(moves[0]))
 			for _, i := range test.moves {
-				assert.Contains(t, moves, i)
+				assert.Contains(t, moves[0], i)
 			}
 		})
 	}

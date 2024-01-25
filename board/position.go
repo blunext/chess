@@ -4,10 +4,13 @@ import (
 	"log"
 )
 
-type SquareMoves map[Bitboard][]Bitboard
-type Generics map[Piece]SquareMoves
-type SliderSquareMoves map[Bitboard][][]Bitboard
-type Sliders map[Piece]SliderSquareMoves
+// SquareMoves maps each square (Bitboard representation) to a list of move sequences.
+// Each move sequence is a slice of Bitboards representing a path that a piece can take from that square.
+type SquareMoves map[Bitboard][][]Bitboard
+
+// PieceMoves associates each chess piece with its possible moves on the board.
+// It uses the SquareMoves to represent all legal moves for a piece from any square, considering the rules of movement unique to each piece.
+type PieceMoves map[Piece]SquareMoves
 
 const (
 	FileA int = iota
@@ -130,7 +133,7 @@ func (position Position) filterColor() Position {
 	return p
 }
 
-func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
+func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Position {
 	var positions []Position
 	color := position.filterColor()           // take only the color to move
 	piecesInColorToMove := color.GetPiece(pc) // get the pieces of that color
@@ -140,7 +143,7 @@ func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 	// get all the pieces on the board flattened to bitboard
 	allFlat := position.Bishops | position.Knights | position.Rooks | position.Queens | position.Kings | position.Pawns
 	for _, bitBoard := range piecesInColorToMove.ToSlice() {
-		directions := sliders[pc][bitBoard]
+		directions := pieceMoves[pc][bitBoard]
 		for _, direction := range directions {
 			for _, move := range direction {
 				if allFlat&move == move { // if there is a piece in the way, stop
@@ -154,31 +157,6 @@ func (position Position) AllSliders(sliders Sliders, pc Piece) []Position {
 				//fmt.Println(piece.Pretty())
 				positions = append(positions, pos)
 			}
-		}
-	}
-	return positions
-}
-
-func (position Position) AllGenerics(generics Generics, pc Piece) []Position {
-	var positions []Position
-	color := position.filterColor()           // take only the color to move
-	piecesInColorToMove := color.GetPiece(pc) // get the pieces of that color
-	if *piecesInColorToMove == 0 {
-		return nil
-	}
-	// get all the pieces on the board flattened to bitboard
-	allFlat := position.Bishops | position.Knights | position.Rooks | position.Queens | position.Kings | position.Pawns
-	for _, bitBoard := range piecesInColorToMove.ToSlice() {
-		moves := generics[pc][bitBoard]
-		for _, move := range moves {
-			if allFlat&move == move { // if there is a piece in the way, stop
-				break
-			}
-			pos := position
-			piece := pos.GetPiece(pc) // get the piece reference
-			*piece &^= bitBoard       // remove the piece from the board
-			*piece |= move            // add the piece to the new position
-			positions = append(positions, pos)
 		}
 	}
 	return positions

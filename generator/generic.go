@@ -4,8 +4,6 @@ import (
 	"chess/board"
 )
 
-//type knightMoves map[board.Bitboard]Moves
-
 type steps []struct{ step []int }
 
 func kingMoves() board.SquareMoves {
@@ -39,6 +37,7 @@ func generateGenericMoves(steps steps) board.SquareMoves {
 	knightMoves := make(board.SquareMoves)
 
 	for pos := 0; pos < 64; pos++ {
+		var directions [][]board.Bitboard
 		var list []board.Bitboard
 		for _, knight := range steps {
 			rank, file := rankAndFile(pos)
@@ -51,9 +50,8 @@ func generateGenericMoves(steps steps) board.SquareMoves {
 				list = append(list, newPos)
 			}
 		}
-		if len(list) > 0 {
-			knightMoves[board.IndexToBitBoard(pos)] = exactSize(list)
-		}
+		directions = append(directions, exactSize(list))
+		knightMoves[board.IndexToBitBoard(pos)] = exactSize(directions)
 	}
 	return knightMoves
 }

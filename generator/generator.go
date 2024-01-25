@@ -4,21 +4,19 @@ import (
 	"chess/board"
 )
 
-func NewGenerator() (board.Sliders, board.Generics) {
-	sliders := make(board.Sliders)
-	sliders[board.Rook] = generateRookMoves()
-	sliders[board.Bishop] = generateBishopMoves()
-	sliders[board.Queen] = generateQueenMoves(sliders[board.Rook], sliders[board.Bishop])
+func NewGenerator() board.PieceMoves {
+	pieceMoves := make(board.PieceMoves)
+	pieceMoves[board.Rook] = generateRookMoves()
+	pieceMoves[board.Bishop] = generateBishopMoves()
+	pieceMoves[board.Queen] = generateQueenMoves(pieceMoves[board.Rook], pieceMoves[board.Bishop])
+	pieceMoves[board.King] = kingMoves()
+	pieceMoves[board.Knight] = knightMoves()
 
-	generic := make(board.Generics)
-	generic[board.King] = kingMoves()
-	generic[board.Knight] = knightMoves()
-
-	return sliders, generic
+	return pieceMoves
 }
 
-func generateQueenMoves(rookMoves, bishopMoves board.SliderSquareMoves) board.SliderSquareMoves {
-	var squareMoves = make(board.SliderSquareMoves)
+func generateQueenMoves(rookMoves, bishopMoves board.SquareMoves) board.SquareMoves {
+	var squareMoves = make(board.SquareMoves)
 	for pos := 0; pos < 64; pos++ {
 		var directions [][]board.Bitboard
 		bbIndex := board.IndexToBitBoard(pos)
