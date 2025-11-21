@@ -1,6 +1,7 @@
 package board
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -199,4 +200,47 @@ func (position *Position) GetPiece(piece Piece) *Bitboard {
 		log.Fatal("unhandled piece")
 		return nil
 	}
+}
+
+// Pretty returns a compact, human-readable representation of the chess position
+// using Unicode chess piece symbols.
+func (position *Position) Pretty() string {
+	var s string
+
+	// Unicode chess pieces: White (uppercase) and Black (lowercase)
+	pieceSymbols := map[Piece]map[Color]string{
+		Pawn:   {ColorWhite: "♙", ColorBlack: "♟"},
+		Knight: {ColorWhite: "♘", ColorBlack: "♞"},
+		Bishop: {ColorWhite: "♗", ColorBlack: "♝"},
+		Rook:   {ColorWhite: "♖", ColorBlack: "♜"},
+		Queen:  {ColorWhite: "♕", ColorBlack: "♛"},
+		King:   {ColorWhite: "♔", ColorBlack: "♚"},
+	}
+
+	for r := Rank8; r >= Rank1; r-- {
+		s += fmt.Sprintf("%d  ", r+1)
+		for f := FileA; f <= FileH; f++ {
+			idx := squareIndex(f, r)
+			symbol := "·"
+
+			// Check each piece type and color
+			for pieceType := Pawn; pieceType <= King; pieceType++ {
+				pieceBB := position.GetPiece(pieceType)
+				if pieceBB.IsBitSet(idx) {
+					if position.White.IsBitSet(idx) {
+						symbol = pieceSymbols[pieceType][ColorWhite]
+					} else if position.Black.IsBitSet(idx) {
+						symbol = pieceSymbols[pieceType][ColorBlack]
+					}
+					break
+				}
+			}
+
+			s += symbol + " "
+		}
+		s += "\n"
+	}
+	s += "   a b c d e f g h\n"
+
+	return s
 }
