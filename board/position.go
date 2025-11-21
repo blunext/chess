@@ -133,6 +133,25 @@ func (position Position) filterColor() Position {
 	return p
 }
 
+// AllLegalMoves generates all pseudo-legal moves for a given piece type to empty squares.
+//
+// This is a simplified move generator that:
+//   - Only generates moves to EMPTY squares (no captures)
+//   - Stops when encountering any piece (friendly or enemy)
+//   - Only updates the moved piece's bitboard (e.g., Bishops, Rooks)
+//   - Does NOT update White/Black color bitboards (for performance)
+//   - Does NOT update turn, castling rights, en passant, or move clocks
+//
+// The returned positions are partial and intended for move generation/analysis only.
+// Full position updates (captures, color bitboards, game state) should be handled separately.
+//
+// Parameters:
+//   - pieceMoves: Pre-generated move patterns for all piece types
+//   - pc: The piece type to generate moves for (Pawn, Knight, Bishop, Rook, Queen, King)
+//
+// Returns:
+//   - A slice of Position structs with only the specified piece's bitboard updated
+//   - nil if no pieces of the specified type exist for the side to move
 func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Position {
 	var positions []Position
 	color := position.filterColor()           // take only the color to move
