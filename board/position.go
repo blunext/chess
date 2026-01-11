@@ -226,6 +226,47 @@ func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	return moves
 }
 
+// GenerateLegalMoves generates all legal moves for the current position.
+// This filters pseudo-legal moves by checking that the king is not in check after each move.
+func (position *Position) GenerateLegalMoves(pieceMoves PieceMoves) []Move {
+	pseudoLegal := position.GenerateMoves(pieceMoves)
+	legal := make([]Move, 0, len(pseudoLegal))
+
+	for _, m := range pseudoLegal {
+		// Make the move
+		undo := position.MakeMove(m)
+
+		// After MakeMove, WhiteMove has flipped.
+		// We want to check if the side that JUST MOVED left their king in check.
+		// That means: is the PREVIOUS side's king attacked by the CURRENT side?
+		// IsInCheck checks if the CURRENT side's king is in check, which is wrong.
+		// We need to check if the OPPONENT (now current side) can attack our king.
+
+		// Find the king of the side that just moved (opposite of current WhiteMove)
+		var kingBB Bitboard
+		if position.WhiteMove {
+			// It's now white's turn, so black just moved - find black king
+			kingBB = position.Kings & position.Black
+		} else {
+			// It's now black's turn, so white just moved - find white king
+			kingBB = position.Kings & position.White
+		}
+
+		kingSq := bits.TrailingZeros64(uint64(kingBB))
+		// Check if current side (enemy of the one who just moved) attacks the king
+		inCheck := position.IsSquareAttacked(kingSq, position.WhiteMove)
+
+		// Unmake the move
+		position.UnmakeMove(m, undo)
+
+		if !inCheck {
+			legal = append(legal, m)
+		}
+	}
+
+	return legal
+}
+
 // rookAttacks returns attack bitboard for a rook at given square with blockers.
 func rookAttacks(sq int, blockers Bitboard) Bitboard {
 	m := magic.RookMagics[sq]
