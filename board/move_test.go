@@ -39,14 +39,21 @@ func TestGenerateSlidingMoves_BlockedByPiece(t *testing.T) {
 
 	moves := position.GenerateMoves(pm)
 
+	// Filter only rook moves
+	var rookMoves []Move
+	for _, m := range moves {
+		if m.Piece == Rook {
+			rookMoves = append(rookMoves, m)
+		}
+	}
+
 	// Rook: 1 up (a2) + 7 right (b1-h1) = 8 moves
-	assert.Len(t, moves, 8)
+	assert.Len(t, rookMoves, 8)
 
 	// Check that a2 is reachable
 	hasA2 := false
-	for _, m := range moves {
+	for _, m := range rookMoves {
 		assert.Equal(t, IndexToBitBoard(0), m.From)
-		assert.Equal(t, Rook, m.Piece)
 		if m.To == IndexToBitBoard(8) {
 			hasA2 = true
 		}
@@ -178,11 +185,19 @@ func TestGenerateJumpingMoves_KnightBlockedByOwnPiece(t *testing.T) {
 
 	moves := position.GenerateMoves(pm)
 
-	// Should have 2 moves (a3 and d2), not c3 (blocked by own pawn)
-	assert.Len(t, moves, 2)
-
-	// Verify c3 is not in the moves
+	// Filter only knight moves
+	var knightMoves []Move
 	for _, m := range moves {
+		if m.Piece == Knight {
+			knightMoves = append(knightMoves, m)
+		}
+	}
+
+	// Should have 2 moves (a3 and d2), not c3 (blocked by own pawn)
+	assert.Len(t, knightMoves, 2)
+
+	// Verify c3 is not in the knight moves
+	for _, m := range knightMoves {
 		assert.NotEqual(t, IndexToBitBoard(18), m.To, "Knight should not land on own piece at c3")
 	}
 }
@@ -267,8 +282,16 @@ func TestGenerateJumpingMoves_KingBlockedByOwnPieces(t *testing.T) {
 
 	moves := position.GenerateMoves(pm)
 
+	// Filter only king moves
+	var kingMoves []Move
+	for _, m := range moves {
+		if m.Piece == King {
+			kingMoves = append(kingMoves, m)
+		}
+	}
+
 	// Should have 3 moves (d1, f1, e2), not d2 or f2 (blocked by pawns)
-	assert.Len(t, moves, 3)
+	assert.Len(t, kingMoves, 3)
 }
 
 func TestGenerateJumpingMoves_KnightCapture(t *testing.T) {
@@ -325,4 +348,153 @@ func TestGenerateJumpingMoves_KingCapture(t *testing.T) {
 	assert.NotNil(t, captureMove, "Should have move to d2")
 	assert.Equal(t, King, captureMove.Piece)
 	assert.Equal(t, Pawn, captureMove.Captured, "Should capture the pawn")
+}
+
+// === Pawn Tests ===
+
+func TestPawnMoves_SinglePush(t *testing.T) {
+	// White pawn at e2
+	position := CreatePositionFormFEN("8/8/8/8/8/8/4P3/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// e2 can go to e3 and e4 (double push from start)
+	assert.Len(t, pawnMoves, 2)
+}
+
+func TestPawnMoves_DoublePush(t *testing.T) {
+	// White pawn at e2, should be able to push to e4
+	position := CreatePositionFormFEN("8/8/8/8/8/8/4P3/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find double push to e4 (index 28)
+	var doublePush *Move
+	for i := range moves {
+		if moves[i].Piece == Pawn && moves[i].To == IndexToBitBoard(28) {
+			doublePush = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, doublePush, "Should have double push to e4")
+	assert.Equal(t, IndexToBitBoard(12), doublePush.From, "Should be from e2")
+}
+
+func TestPawnMoves_BlockedPush(t *testing.T) {
+	// White pawn at e2, blocked by piece at e3
+	position := CreatePositionFormFEN("8/8/8/8/8/4p3/4P3/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves - should have 0 (blocked)
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	assert.Len(t, pawnMoves, 0, "Pawn should be blocked")
+}
+
+func TestPawnMoves_Capture(t *testing.T) {
+	// White pawn at e4, black pawns at d5 and f5
+	position := CreatePositionFormFEN("8/8/8/3p1p2/4P3/8/8/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// e4 can: push to e5, capture d5, capture f5 = 3 moves
+	assert.Len(t, pawnMoves, 3)
+
+	// Check captures have Captured set
+	captureCount := 0
+	for _, m := range pawnMoves {
+		if m.Captured == Pawn {
+			captureCount++
+		}
+	}
+	assert.Equal(t, 2, captureCount, "Should have 2 captures")
+}
+
+func TestPawnMoves_BlackPawn(t *testing.T) {
+	// Black pawn at e7
+	position := CreatePositionFormFEN("8/4p3/8/8/8/8/8/8 b - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// e7 can go to e6 and e5 (double push from start)
+	assert.Len(t, pawnMoves, 2)
+
+	// Verify moves are downward (lower indices)
+	for _, m := range pawnMoves {
+		assert.Less(t, int(m.To), int(m.From), "Black pawn should move down")
+	}
+}
+
+func TestPawnMoves_NoWrapAround(t *testing.T) {
+	// White pawn at a4 - should not capture on h-file
+	position := CreatePositionFormFEN("8/8/8/8/P7/8/8/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// a4 can only push to a5, no captures possible
+	assert.Len(t, pawnMoves, 1)
+	assert.Equal(t, IndexToBitBoard(32), pawnMoves[0].To, "Should push to a5")
 }

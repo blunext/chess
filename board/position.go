@@ -217,6 +217,9 @@ func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	moves = position.appendJumpingMoves(moves, pieceMoves, Knight, ourPieces, enemyPieces)
 	moves = position.appendJumpingMoves(moves, pieceMoves, King, ourPieces, enemyPieces)
 
+	// Pawns
+	moves = position.appendPawnMoves(moves, ourPieces, enemyPieces, allPieces)
+
 	return moves
 }
 
@@ -326,6 +329,168 @@ func (position Position) appendJumpingMoves(moves []Move, pieceMoves PieceMoves,
 				To:       toBB,
 				Piece:    pc,
 				Captured: captured,
+			})
+		}
+	}
+
+	return moves
+}
+
+// Bitboard masks for pawn move generation
+const (
+	fileAMask Bitboard = 0x0101010101010101 // a-file (prevents left capture wrap)
+	fileHMask Bitboard = 0x8080808080808080 // h-file (prevents right capture wrap)
+	rank2Mask Bitboard = 0x000000000000FF00 // white pawn start rank
+	rank7Mask Bitboard = 0x00FF000000000000 // black pawn start rank
+)
+
+// appendPawnMoves appends all pawn moves (pushes and captures).
+// Pawns have unique movement rules:
+// - Move forward only (direction depends on color)
+// - Can move 2 squares from starting rank
+// - Capture diagonally only
+// Note: Code is intentionally duplicated for white/black for performance
+// (constant shifts are faster than variable shifts).
+func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, allPieces Bitboard) []Move {
+	pawns := position.Pawns & ourPieces
+	if pawns == 0 {
+		return moves
+	}
+
+	empty := ^allPieces
+
+	if position.WhiteMove {
+		// === WHITE PAWNS (move up: +8) ===
+
+		// Single push: move one square forward to empty square
+		singlePush := (pawns << 8) & empty
+		for bb := singlePush; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB >> 8
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: Empty,
+			})
+		}
+
+		// Double push: from rank 2, both squares must be empty
+		doublePush := ((pawns & rank2Mask) << 8) & empty // first square empty
+		doublePush = (doublePush << 8) & empty           // second square empty
+		for bb := doublePush; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB >> 16
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: Empty,
+			})
+		}
+
+		// Left capture (+7): diagonal left-up, exclude a-file (would wrap to h-file)
+		leftCapture := ((pawns &^ fileAMask) << 7) & enemyPieces
+		for bb := leftCapture; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB >> 7
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: position.pieceAt(toBB),
+			})
+		}
+
+		// Right capture (+9): diagonal right-up, exclude h-file (would wrap to a-file)
+		rightCapture := ((pawns &^ fileHMask) << 9) & enemyPieces
+		for bb := rightCapture; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB >> 9
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: position.pieceAt(toBB),
+			})
+		}
+	} else {
+		// === BLACK PAWNS (move down: -8) ===
+
+		// Single push: move one square forward to empty square
+		singlePush := (pawns >> 8) & empty
+		for bb := singlePush; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB << 8
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: Empty,
+			})
+		}
+
+		// Double push: from rank 7, both squares must be empty
+		doublePush := ((pawns & rank7Mask) >> 8) & empty // first square empty
+		doublePush = (doublePush >> 8) & empty           // second square empty
+		for bb := doublePush; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB << 16
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: Empty,
+			})
+		}
+
+		// Left capture (-9): diagonal left-down, exclude a-file (would wrap to h-file)
+		leftCapture := ((pawns &^ fileAMask) >> 9) & enemyPieces
+		for bb := leftCapture; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB << 9
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: position.pieceAt(toBB),
+			})
+		}
+
+		// Right capture (-7): diagonal right-down, exclude h-file (would wrap to a-file)
+		rightCapture := ((pawns &^ fileHMask) >> 7) & enemyPieces
+		for bb := rightCapture; bb != 0; {
+			toIdx := bits.TrailingZeros64(uint64(bb))
+			toBB := Bitboard(1 << toIdx)
+			bb &^= toBB
+			fromBB := toBB << 7
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    Pawn,
+				Captured: position.pieceAt(toBB),
 			})
 		}
 	}
