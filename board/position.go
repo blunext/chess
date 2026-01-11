@@ -193,19 +193,29 @@ func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Positi
 // Uses Magic Bitboards for O(1) sliding piece move generation.
 // Supports: Bishop, Rook, Queen (sliding with magic BB), Knight, King (jumping).
 func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
-	var moves []Move
-
-	// Sliding pieces using Magic Bitboards (O(1) lookup per piece)
-	slidingPieces := []Piece{Bishop, Rook, Queen}
-	for _, pc := range slidingPieces {
-		moves = append(moves, position.generateSlidingMovesWithMagic(pc)...)
+	// Cache piece masks (computed once, used by all generators)
+	var ourPieces, enemyPieces Bitboard
+	if position.WhiteMove {
+		ourPieces = position.White
+		enemyPieces = position.Black
+	} else {
+		ourPieces = position.Black
+		enemyPieces = position.White
 	}
+	allPieces := position.Bishops | position.Knights | position.Rooks |
+		position.Queens | position.Kings | position.Pawns
 
-	// Jumping pieces (single target squares, no blocking)
-	jumpingPieces := []Piece{Knight, King}
-	for _, pc := range jumpingPieces {
-		moves = append(moves, position.generateJumpingMoves(pieceMoves, pc)...)
-	}
+	// Single allocation for all moves (max ~64 moves typical)
+	moves := make([]Move, 0, 64)
+
+	// Sliding pieces using Magic Bitboards
+	moves = position.appendSlidingMoves(moves, Bishop, ourPieces, enemyPieces, allPieces)
+	moves = position.appendSlidingMoves(moves, Rook, ourPieces, enemyPieces, allPieces)
+	moves = position.appendSlidingMoves(moves, Queen, ourPieces, enemyPieces, allPieces)
+
+	// Jumping pieces
+	moves = position.appendJumpingMoves(moves, pieceMoves, Knight, ourPieces)
+	moves = position.appendJumpingMoves(moves, pieceMoves, King, ourPieces)
 
 	return moves
 }
@@ -224,31 +234,14 @@ func bishopAttacks(sq int, blockers Bitboard) Bitboard {
 	return Bitboard(magic.BishopMoves[sq][idx])
 }
 
-// generateSlidingMovesWithMagic generates moves for sliding pieces using Magic Bitboards.
-// This is O(1) lookup per piece instead of O(n) direction iteration.
-func (position Position) generateSlidingMovesWithMagic(pc Piece) []Move {
-	// Get our and enemy pieces masks
-	var ourPieces, enemyPieces Bitboard
-	if position.WhiteMove {
-		ourPieces = position.White
-		enemyPieces = position.Black
-	} else {
-		ourPieces = position.Black
-		enemyPieces = position.White
-	}
-
+// appendSlidingMoves appends moves for a sliding piece type using Magic Bitboards.
+// Takes pre-computed piece masks to avoid redundant calculations.
+func (position Position) appendSlidingMoves(moves []Move, pc Piece, ourPieces, enemyPieces, allPieces Bitboard) []Move {
 	// Get pieces of this type for side to move
 	pieceBB := *position.GetPiece(pc) & ourPieces
 	if pieceBB == 0 {
-		return nil
+		return moves
 	}
-
-	// All pieces on the board (blockers for magic lookup)
-	allPieces := position.Bishops | position.Knights | position.Rooks |
-		position.Queens | position.Kings | position.Pawns
-
-	// Pre-allocate moves slice (estimate: ~10 moves per piece on average)
-	moves := make([]Move, 0, bits.OnesCount64(uint64(pieceBB))*10)
 
 	// Bit-scan through each piece
 	for bb := pieceBB; bb != 0; {
@@ -294,28 +287,14 @@ func (position Position) generateSlidingMovesWithMagic(pc Piece) []Move {
 	return moves
 }
 
-// generateJumpingMoves generates moves for jumping pieces (Knight, King).
-// Unlike sliding pieces, jumping pieces don't have directions - they have
-// a flat list of target squares and cannot be blocked.
-func (position Position) generateJumpingMoves(pieceMoves PieceMoves, pc Piece) []Move {
-	var moves []Move
-
-	// Get our pieces mask
-	var ourPieces Bitboard
-	if position.WhiteMove {
-		ourPieces = position.White
-	} else {
-		ourPieces = position.Black
-	}
-
+// appendJumpingMoves appends moves for jumping pieces (Knight, King).
+// Takes pre-computed ourPieces mask to avoid redundant calculations.
+func (position Position) appendJumpingMoves(moves []Move, pieceMoves PieceMoves, pc Piece, ourPieces Bitboard) []Move {
 	// Get pieces of this type for side to move
 	pieceBB := *position.GetPiece(pc) & ourPieces
 	if pieceBB == 0 {
-		return nil
+		return moves
 	}
-
-	// All pieces on the board (for blocking check - can't land on own pieces)
-	allOurs := ourPieces
 
 	// Bit-scan through each piece
 	for bb := pieceBB; bb != 0; {
@@ -332,7 +311,7 @@ func (position Position) generateJumpingMoves(pieceMoves PieceMoves, pc Piece) [
 
 		for _, toBB := range targets {
 			// Can't land on our own pieces
-			if allOurs&toBB == toBB {
+			if ourPieces&toBB == toBB {
 				continue
 			}
 			moves = append(moves, Move{
