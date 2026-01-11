@@ -691,6 +691,64 @@ func TestPawnMoves_BlackPromotion(t *testing.T) {
 	assert.True(t, promotions[Knight], "Should have Knight promotion")
 }
 
+func TestPawnMoves_BlackPromotionCapture(t *testing.T) {
+	// Black pawn at e2, white rook at d1 - can capture and promote
+	position := CreatePositionFormFEN("8/8/8/8/8/8/4p3/3R4 b - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// 4 promotions forward (e2-e1) + 4 capture promotions (e2xd1) = 8
+	assert.Len(t, pawnMoves, 8, "Should have 8 promotion moves")
+
+	// Count captures with correct piece type
+	captureCount := 0
+	for _, m := range pawnMoves {
+		if m.Captured == Rook {
+			captureCount++
+			assert.Equal(t, IndexToBitBoard(3), m.To, "Capture should be to d1")
+			assert.NotEqual(t, Empty, m.Promotion, "Capture should have promotion")
+		}
+	}
+	assert.Equal(t, 4, captureCount, "Should have 4 capture promotions")
+}
+
+func TestPawnMoves_DoublePushBlockedOn4thRank(t *testing.T) {
+	// White pawn at e2, e3 empty, e4 blocked by black pawn
+	// Pawn can go to e3 but NOT to e4
+	position := CreatePositionFormFEN("8/8/8/8/4p3/8/4P3/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// Should have only 1 move: e2-e3 (single push)
+	// Double push e2-e4 is blocked by black pawn
+	assert.Len(t, pawnMoves, 1, "Should have only single push (double blocked)")
+	assert.Equal(t, IndexToBitBoard(20), pawnMoves[0].To, "Should be to e3")
+}
+
 // === En Passant Tests ===
 
 func TestPawnMoves_EnPassantWhite(t *testing.T) {
