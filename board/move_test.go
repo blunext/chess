@@ -144,6 +144,94 @@ func TestMove_String_Capture(t *testing.T) {
 	assert.Equal(t, "Bishop: c1 x d2", m.String())
 }
 
+func TestMove_String_Promotion(t *testing.T) {
+	m := Move{
+		From:      IndexToBitBoard(52), // e7
+		To:        IndexToBitBoard(60), // e8
+		Piece:     Pawn,
+		Promotion: Queen,
+	}
+
+	assert.Equal(t, "Pawn: e7 -> e8=Queen", m.String())
+}
+
+func TestMove_String_EnPassant(t *testing.T) {
+	m := Move{
+		From:     IndexToBitBoard(36), // e5
+		To:       IndexToBitBoard(43), // d6
+		Piece:    Pawn,
+		Captured: Pawn,
+		Flags:    FlagEnPassant,
+	}
+
+	assert.Equal(t, "Pawn: e5 x d6 e.p.", m.String())
+}
+
+func TestMove_String_Castling(t *testing.T) {
+	m := Move{
+		From:  IndexToBitBoard(4), // e1
+		To:    IndexToBitBoard(6), // g1
+		Piece: King,
+		Flags: FlagCastling,
+	}
+
+	assert.Equal(t, "King: e1 -> g1 (castling)", m.String())
+}
+
+func TestMove_ToUCI(t *testing.T) {
+	tests := []struct {
+		name     string
+		move     Move
+		expected string
+	}{
+		{
+			name: "simple move",
+			move: Move{
+				From:  IndexToBitBoard(12), // e2
+				To:    IndexToBitBoard(28), // e4
+				Piece: Pawn,
+			},
+			expected: "e2e4",
+		},
+		{
+			name: "promotion to queen",
+			move: Move{
+				From:      IndexToBitBoard(52), // e7
+				To:        IndexToBitBoard(60), // e8
+				Piece:     Pawn,
+				Promotion: Queen,
+			},
+			expected: "e7e8q",
+		},
+		{
+			name: "promotion to knight",
+			move: Move{
+				From:      IndexToBitBoard(49), // b7
+				To:        IndexToBitBoard(57), // b8
+				Piece:     Pawn,
+				Promotion: Knight,
+			},
+			expected: "b7b8n",
+		},
+		{
+			name: "castling kingside",
+			move: Move{
+				From:  IndexToBitBoard(4), // e1
+				To:    IndexToBitBoard(6), // g1
+				Piece: King,
+				Flags: FlagCastling,
+			},
+			expected: "e1g1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.move.ToUCI())
+		})
+	}
+}
+
 func TestGenerateJumpingMoves_Knight(t *testing.T) {
 	// Knight at b1
 	position := CreatePositionFormFEN("8/8/8/8/8/8/8/1N6 w - - 0 1")
