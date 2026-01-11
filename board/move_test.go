@@ -586,3 +586,176 @@ func TestPawnMoves_NoWrapAround(t *testing.T) {
 	assert.Len(t, pawnMoves, 1)
 	assert.Equal(t, IndexToBitBoard(32), pawnMoves[0].To, "Should push to a5")
 }
+
+// === Pawn Promotion Tests ===
+
+func TestPawnMoves_WhitePromotion(t *testing.T) {
+	// White pawn at e7 can promote
+	position := CreatePositionFormFEN("8/4P3/8/8/8/8/8/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// e7 -> e8 should generate 4 promotion moves (Q, R, B, N)
+	assert.Len(t, pawnMoves, 4, "Should have 4 promotion moves")
+
+	// Verify all promotions
+	promotions := make(map[Piece]bool)
+	for _, m := range pawnMoves {
+		assert.Equal(t, IndexToBitBoard(52), m.From, "Should be from e7")
+		assert.Equal(t, IndexToBitBoard(60), m.To, "Should be to e8")
+		assert.NotEqual(t, Empty, m.Promotion, "Should have promotion piece")
+		promotions[m.Promotion] = true
+	}
+
+	assert.True(t, promotions[Queen], "Should have Queen promotion")
+	assert.True(t, promotions[Rook], "Should have Rook promotion")
+	assert.True(t, promotions[Bishop], "Should have Bishop promotion")
+	assert.True(t, promotions[Knight], "Should have Knight promotion")
+}
+
+func TestPawnMoves_WhitePromotionCapture(t *testing.T) {
+	// White pawn at e7, black rook at f8
+	position := CreatePositionFormFEN("5r2/4P3/8/8/8/8/8/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// 4 promotions forward (e7-e8) + 4 capture promotions (e7xf8) = 8
+	assert.Len(t, pawnMoves, 8, "Should have 8 promotion moves")
+
+	// Count captures
+	captureCount := 0
+	for _, m := range pawnMoves {
+		if m.Captured == Rook {
+			captureCount++
+		}
+	}
+	assert.Equal(t, 4, captureCount, "Should have 4 capture promotions")
+}
+
+func TestPawnMoves_BlackPromotion(t *testing.T) {
+	// Black pawn at e2 can promote
+	position := CreatePositionFormFEN("8/8/8/8/8/8/4p3/8 b - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Filter pawn moves
+	var pawnMoves []Move
+	for _, m := range moves {
+		if m.Piece == Pawn {
+			pawnMoves = append(pawnMoves, m)
+		}
+	}
+
+	// e2 -> e1 should generate 4 promotion moves (Q, R, B, N)
+	assert.Len(t, pawnMoves, 4, "Should have 4 promotion moves")
+
+	// Verify all promotions
+	promotions := make(map[Piece]bool)
+	for _, m := range pawnMoves {
+		assert.Equal(t, IndexToBitBoard(12), m.From, "Should be from e2")
+		assert.Equal(t, IndexToBitBoard(4), m.To, "Should be to e1")
+		promotions[m.Promotion] = true
+	}
+
+	assert.True(t, promotions[Queen], "Should have Queen promotion")
+	assert.True(t, promotions[Rook], "Should have Rook promotion")
+	assert.True(t, promotions[Bishop], "Should have Bishop promotion")
+	assert.True(t, promotions[Knight], "Should have Knight promotion")
+}
+
+// === En Passant Tests ===
+
+func TestPawnMoves_EnPassantWhite(t *testing.T) {
+	// White pawn at e5, black pawn just played d7-d5 (en passant on d6)
+	position := CreatePositionFormFEN("8/8/8/3pP3/8/8/8/8 w - d6 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find en passant move
+	var epMove *Move
+	for i := range moves {
+		if moves[i].Flags&FlagEnPassant != 0 {
+			epMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, epMove, "Should have en passant move")
+	assert.Equal(t, IndexToBitBoard(36), epMove.From, "Should be from e5")
+	assert.Equal(t, IndexToBitBoard(43), epMove.To, "Should be to d6")
+	assert.Equal(t, Pawn, epMove.Captured, "Should capture pawn")
+	assert.Equal(t, Pawn, epMove.Piece, "Should be pawn move")
+}
+
+func TestPawnMoves_EnPassantBlack(t *testing.T) {
+	// Black pawn at d4, white pawn just played e2-e4 (en passant on e3)
+	position := CreatePositionFormFEN("8/8/8/8/3pP3/8/8/8 b - e3 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find en passant move
+	var epMove *Move
+	for i := range moves {
+		if moves[i].Flags&FlagEnPassant != 0 {
+			epMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, epMove, "Should have en passant move")
+	assert.Equal(t, IndexToBitBoard(27), epMove.From, "Should be from d4")
+	assert.Equal(t, IndexToBitBoard(20), epMove.To, "Should be to e3")
+	assert.Equal(t, Pawn, epMove.Captured, "Should capture pawn")
+}
+
+func TestPawnMoves_NoEnPassantWithoutFlag(t *testing.T) {
+	// Position without en passant flag - no en passant should be generated
+	position := CreatePositionFormFEN("8/8/8/3pP3/8/8/8/8 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Check no en passant moves
+	for _, m := range moves {
+		assert.Equal(t, FlagNone, m.Flags&FlagEnPassant, "Should not have en passant flag")
+	}
+}

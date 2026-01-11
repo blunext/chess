@@ -340,9 +340,37 @@ func (position Position) appendJumpingMoves(moves []Move, pieceMoves PieceMoves,
 const (
 	fileAMask Bitboard = 0x0101010101010101 // a-file (prevents left capture wrap)
 	fileHMask Bitboard = 0x8080808080808080 // h-file (prevents right capture wrap)
+	rank1Mask Bitboard = 0x00000000000000FF // rank 1 (black promotion)
 	rank2Mask Bitboard = 0x000000000000FF00 // white pawn start rank
 	rank7Mask Bitboard = 0x00FF000000000000 // black pawn start rank
+	rank8Mask Bitboard = 0xFF00000000000000 // rank 8 (white promotion)
 )
+
+// promotionPieces are the pieces a pawn can promote to
+var promotionPieces = [4]Piece{Queen, Rook, Bishop, Knight}
+
+// appendPawnMove adds a pawn move, generating 4 moves if it's a promotion
+func appendPawnMove(moves []Move, fromBB, toBB Bitboard, captured Piece, isPromotion bool) []Move {
+	if isPromotion {
+		for _, promo := range promotionPieces {
+			moves = append(moves, Move{
+				From:      fromBB,
+				To:        toBB,
+				Piece:     Pawn,
+				Captured:  captured,
+				Promotion: promo,
+			})
+		}
+	} else {
+		moves = append(moves, Move{
+			From:     fromBB,
+			To:       toBB,
+			Piece:    Pawn,
+			Captured: captured,
+		})
+	}
+	return moves
+}
 
 // appendPawnMoves appends all pawn moves (pushes and captures).
 // Pawns have unique movement rules:
@@ -369,16 +397,13 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			toBB := Bitboard(1 << toIdx)
 			bb &^= toBB
 			fromBB := toBB >> 8
+			isPromotion := toBB&rank8Mask != 0
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: Empty,
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, Empty, isPromotion)
 		}
 
 		// Double push: from rank 2, both squares must be empty
+		// (double push can never be a promotion)
 		doublePush := ((pawns & rank2Mask) << 8) & empty // first square empty
 		doublePush = (doublePush << 8) & empty           // second square empty
 		for bb := doublePush; bb != 0; {
@@ -387,12 +412,7 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			bb &^= toBB
 			fromBB := toBB >> 16
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: Empty,
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, Empty, false)
 		}
 
 		// Left capture (+7): diagonal left-up, exclude a-file (would wrap to h-file)
@@ -402,13 +422,9 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			toBB := Bitboard(1 << toIdx)
 			bb &^= toBB
 			fromBB := toBB >> 7
+			isPromotion := toBB&rank8Mask != 0
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: position.pieceAt(toBB),
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, position.pieceAt(toBB), isPromotion)
 		}
 
 		// Right capture (+9): diagonal right-up, exclude h-file (would wrap to a-file)
@@ -418,13 +434,34 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			toBB := Bitboard(1 << toIdx)
 			bb &^= toBB
 			fromBB := toBB >> 9
+			isPromotion := toBB&rank8Mask != 0
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: position.pieceAt(toBB),
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, position.pieceAt(toBB), isPromotion)
+		}
+
+		// En passant for white (capture on rank 6)
+		if position.EnPassant != 0 {
+			epSquare := position.EnPassant
+			// Left en passant (+7)
+			if fromBB := (epSquare >> 7) & pawns & ^fileHMask; fromBB != 0 {
+				moves = append(moves, Move{
+					From:     fromBB,
+					To:       epSquare,
+					Piece:    Pawn,
+					Captured: Pawn, // en passant always captures a pawn
+					Flags:    FlagEnPassant,
+				})
+			}
+			// Right en passant (+9)
+			if fromBB := (epSquare >> 9) & pawns & ^fileAMask; fromBB != 0 {
+				moves = append(moves, Move{
+					From:     fromBB,
+					To:       epSquare,
+					Piece:    Pawn,
+					Captured: Pawn,
+					Flags:    FlagEnPassant,
+				})
+			}
 		}
 	} else {
 		// === BLACK PAWNS (move down: -8) ===
@@ -436,16 +473,13 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			toBB := Bitboard(1 << toIdx)
 			bb &^= toBB
 			fromBB := toBB << 8
+			isPromotion := toBB&rank1Mask != 0
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: Empty,
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, Empty, isPromotion)
 		}
 
 		// Double push: from rank 7, both squares must be empty
+		// (double push can never be a promotion)
 		doublePush := ((pawns & rank7Mask) >> 8) & empty // first square empty
 		doublePush = (doublePush >> 8) & empty           // second square empty
 		for bb := doublePush; bb != 0; {
@@ -454,12 +488,7 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			bb &^= toBB
 			fromBB := toBB << 16
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: Empty,
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, Empty, false)
 		}
 
 		// Left capture (-9): diagonal left-down, exclude a-file (would wrap to h-file)
@@ -469,13 +498,9 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			toBB := Bitboard(1 << toIdx)
 			bb &^= toBB
 			fromBB := toBB << 9
+			isPromotion := toBB&rank1Mask != 0
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: position.pieceAt(toBB),
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, position.pieceAt(toBB), isPromotion)
 		}
 
 		// Right capture (-7): diagonal right-down, exclude h-file (would wrap to a-file)
@@ -485,13 +510,34 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 			toBB := Bitboard(1 << toIdx)
 			bb &^= toBB
 			fromBB := toBB << 7
+			isPromotion := toBB&rank1Mask != 0
 
-			moves = append(moves, Move{
-				From:     fromBB,
-				To:       toBB,
-				Piece:    Pawn,
-				Captured: position.pieceAt(toBB),
-			})
+			moves = appendPawnMove(moves, fromBB, toBB, position.pieceAt(toBB), isPromotion)
+		}
+
+		// En passant for black (capture on rank 3)
+		if position.EnPassant != 0 {
+			epSquare := position.EnPassant
+			// Left en passant (-9)
+			if fromBB := (epSquare << 9) & pawns & ^fileHMask; fromBB != 0 {
+				moves = append(moves, Move{
+					From:     fromBB,
+					To:       epSquare,
+					Piece:    Pawn,
+					Captured: Pawn,
+					Flags:    FlagEnPassant,
+				})
+			}
+			// Right en passant (-7)
+			if fromBB := (epSquare << 7) & pawns & ^fileAMask; fromBB != 0 {
+				moves = append(moves, Move{
+					From:     fromBB,
+					To:       epSquare,
+					Piece:    Pawn,
+					Captured: Pawn,
+					Flags:    FlagEnPassant,
+				})
+			}
 		}
 	}
 
