@@ -270,3 +270,59 @@ func TestGenerateJumpingMoves_KingBlockedByOwnPieces(t *testing.T) {
 	// Should have 3 moves (d1, f1, e2), not d2 or f2 (blocked by pawns)
 	assert.Len(t, moves, 3)
 }
+
+func TestGenerateJumpingMoves_KnightCapture(t *testing.T) {
+	// White knight at b1, black pawn at c3
+	position := CreatePositionFormFEN("8/8/8/8/8/2p5/8/1N6 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{
+		IndexToBitBoard(1): [][]Bitboard{
+			{IndexToBitBoard(16), IndexToBitBoard(18), IndexToBitBoard(11)}, // a3, c3, d2
+		},
+	}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find capture move to c3
+	var captureMove *Move
+	for i := range moves {
+		if moves[i].To == IndexToBitBoard(18) { // c3
+			captureMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, captureMove, "Should have move to c3")
+	assert.Equal(t, Knight, captureMove.Piece)
+	assert.Equal(t, Pawn, captureMove.Captured, "Should capture the pawn")
+}
+
+func TestGenerateJumpingMoves_KingCapture(t *testing.T) {
+	// White king at e1, black pawn at d2
+	position := CreatePositionFormFEN("8/8/8/8/8/8/3p4/4K3 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{
+			{IndexToBitBoard(3), IndexToBitBoard(5), IndexToBitBoard(11), IndexToBitBoard(12), IndexToBitBoard(13)},
+		},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find capture move to d2
+	var captureMove *Move
+	for i := range moves {
+		if moves[i].To == IndexToBitBoard(11) { // d2
+			captureMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, captureMove, "Should have move to d2")
+	assert.Equal(t, King, captureMove.Piece)
+	assert.Equal(t, Pawn, captureMove.Captured, "Should capture the pawn")
+}

@@ -214,8 +214,8 @@ func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	moves = position.appendSlidingMoves(moves, Queen, ourPieces, enemyPieces, allPieces)
 
 	// Jumping pieces
-	moves = position.appendJumpingMoves(moves, pieceMoves, Knight, ourPieces)
-	moves = position.appendJumpingMoves(moves, pieceMoves, King, ourPieces)
+	moves = position.appendJumpingMoves(moves, pieceMoves, Knight, ourPieces, enemyPieces)
+	moves = position.appendJumpingMoves(moves, pieceMoves, King, ourPieces, enemyPieces)
 
 	return moves
 }
@@ -288,8 +288,8 @@ func (position Position) appendSlidingMoves(moves []Move, pc Piece, ourPieces, e
 }
 
 // appendJumpingMoves appends moves for jumping pieces (Knight, King).
-// Takes pre-computed ourPieces mask to avoid redundant calculations.
-func (position Position) appendJumpingMoves(moves []Move, pieceMoves PieceMoves, pc Piece, ourPieces Bitboard) []Move {
+// Takes pre-computed piece masks to avoid redundant calculations.
+func (position Position) appendJumpingMoves(moves []Move, pieceMoves PieceMoves, pc Piece, ourPieces, enemyPieces Bitboard) []Move {
 	// Get pieces of this type for side to move
 	pieceBB := *position.GetPiece(pc) & ourPieces
 	if pieceBB == 0 {
@@ -314,11 +314,18 @@ func (position Position) appendJumpingMoves(moves []Move, pieceMoves PieceMoves,
 			if ourPieces&toBB == toBB {
 				continue
 			}
+
+			// Detect capture
+			captured := Empty
+			if enemyPieces&toBB != 0 {
+				captured = position.pieceAt(toBB)
+			}
+
 			moves = append(moves, Move{
 				From:     fromBB,
 				To:       toBB,
 				Piece:    pc,
-				Captured: Empty,
+				Captured: captured,
 			})
 		}
 	}
