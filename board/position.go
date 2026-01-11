@@ -207,6 +207,7 @@ func (position Position) GenerateSlidingMoves(pieceMoves PieceMoves) []Move {
 // generateMovesForPiece generates pseudo-legal moves for a single piece type.
 // Helper function used by GenerateSlidingMoves.
 func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) []Move {
+	// TODO: consider pre-allocating: moves := make([]Move, 0, 32)
 	var moves []Move
 
 	// We only need pieces of one type for the side to move.
