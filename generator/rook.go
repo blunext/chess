@@ -71,3 +71,8 @@ func rookLeft(pos int) []board.Bitboard {
 	}
 	return exactSize(list)
 }
+
+// GenerateRookMovesForTesting exports the rook move generator for testing purposes.
+func GenerateRookMovesForTesting() board.SquareMoves {
+	return generateRookMoves()
+}

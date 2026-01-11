@@ -27,8 +27,8 @@ func (m Move) String() string {
 	fromIdx := bitboardToIndex(m.From)
 	toIdx := bitboardToIndex(m.To)
 
-	fromSquare := indexToAlgebraic(fromIdx)
-	toSquare := indexToAlgebraic(toIdx)
+	fromSquare := IndexToAlgebraic(fromIdx)
+	toSquare := IndexToAlgebraic(toIdx)
 
 	if m.Captured != Empty {
 		return fmt.Sprintf("%s: %s x %s", pieceNames[m.Piece], fromSquare, toSquare)
@@ -46,8 +46,8 @@ func bitboardToIndex(bb Bitboard) int {
 	return -1
 }
 
-// indexToAlgebraic converts a square index to algebraic notation (e.g., 0 -> "a1").
-func indexToAlgebraic(idx int) string {
+// IndexToAlgebraic converts a square index to algebraic notation (e.g., 0 -> "a1").
+func IndexToAlgebraic(idx int) string {
 	if idx < 0 || idx > 63 {
 		return "??"
 	}

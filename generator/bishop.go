@@ -93,3 +93,8 @@ func bishopNW(pos int) []board.Bitboard {
 	}
 	return exactSize(list)
 }
+
+// GenerateBishopMovesForTesting exports the bishop move generator for testing purposes.
+func GenerateBishopMovesForTesting() board.SquareMoves {
+	return generateBishopMoves()
+}
