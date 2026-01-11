@@ -759,3 +759,122 @@ func TestPawnMoves_NoEnPassantWithoutFlag(t *testing.T) {
 		assert.Equal(t, FlagNone, m.Flags&FlagEnPassant, "Should not have en passant flag")
 	}
 }
+
+// === Castling Move Generation Tests ===
+
+func TestCastlingMoves_WhiteKingSide(t *testing.T) {
+	// White can castle kingside: king on e1, rook on h1, f1 and g1 empty
+	position := CreatePositionFormFEN("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{}, // e1 king - no normal moves for this test
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find kingside castling move
+	var castleMove *Move
+	for i := range moves {
+		if moves[i].Flags&FlagCastling != 0 && moves[i].To == IndexToBitBoard(6) {
+			castleMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, castleMove, "Should have kingside castling move")
+	assert.Equal(t, IndexToBitBoard(4), castleMove.From, "Should be from e1")
+	assert.Equal(t, IndexToBitBoard(6), castleMove.To, "Should be to g1")
+	assert.Equal(t, King, castleMove.Piece, "Should be king move")
+}
+
+func TestCastlingMoves_WhiteQueenSide(t *testing.T) {
+	// White can castle queenside
+	position := CreatePositionFormFEN("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find queenside castling move
+	var castleMove *Move
+	for i := range moves {
+		if moves[i].Flags&FlagCastling != 0 && moves[i].To == IndexToBitBoard(2) {
+			castleMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, castleMove, "Should have queenside castling move")
+	assert.Equal(t, IndexToBitBoard(4), castleMove.From, "Should be from e1")
+	assert.Equal(t, IndexToBitBoard(2), castleMove.To, "Should be to c1")
+}
+
+func TestCastlingMoves_BlackKingSide(t *testing.T) {
+	// Black can castle kingside
+	position := CreatePositionFormFEN("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(60): [][]Bitboard{},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find kingside castling move
+	var castleMove *Move
+	for i := range moves {
+		if moves[i].Flags&FlagCastling != 0 && moves[i].To == IndexToBitBoard(62) {
+			castleMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, castleMove, "Should have kingside castling move")
+	assert.Equal(t, IndexToBitBoard(60), castleMove.From, "Should be from e8")
+	assert.Equal(t, IndexToBitBoard(62), castleMove.To, "Should be to g8")
+}
+
+func TestCastlingMoves_BlockedByPiece(t *testing.T) {
+	// White kingside blocked by bishop on f1
+	position := CreatePositionFormFEN("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3KB1R w KQkq - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Should NOT have kingside castling
+	for _, m := range moves {
+		if m.Flags&FlagCastling != 0 && m.To == IndexToBitBoard(6) {
+			t.Error("Should not have kingside castling when blocked")
+		}
+	}
+}
+
+func TestCastlingMoves_NoRights(t *testing.T) {
+	// Position without castling rights
+	position := CreatePositionFormFEN("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Should have NO castling moves
+	for _, m := range moves {
+		assert.Equal(t, FlagNone, m.Flags&FlagCastling, "Should not have castling flag")
+	}
+}

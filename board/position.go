@@ -220,6 +220,9 @@ func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	// Pawns
 	moves = position.appendPawnMoves(moves, ourPieces, enemyPieces, allPieces)
 
+	// Castling
+	moves = position.appendCastlingMoves(moves, allPieces)
+
 	return moves
 }
 
@@ -345,6 +348,94 @@ const (
 	rank7Mask Bitboard = 0x00FF000000000000 // black pawn start rank
 	rank8Mask Bitboard = 0xFF00000000000000 // rank 8 (white promotion)
 )
+
+// Castling constants - square indices and blocking masks
+const (
+	// White castling
+	whiteKingStart       = 4 // e1
+	whiteRookKingSide    = 7 // h1
+	whiteRookQueenSide   = 0 // a1
+	whiteKingKingSideTo  = 6 // g1
+	whiteKingQueenSideTo = 2 // c1
+
+	// Black castling
+	blackKingStart       = 60 // e8
+	blackRookKingSide    = 63 // h8
+	blackRookQueenSide   = 56 // a8
+	blackKingKingSideTo  = 62 // g8
+	blackKingQueenSideTo = 58 // c8
+)
+
+// Masks for squares that must be empty for castling
+var (
+	// White kingside: f1, g1 (indices 5, 6)
+	whiteKingSideEmpty Bitboard = (1 << 5) | (1 << 6)
+	// White queenside: b1, c1, d1 (indices 1, 2, 3)
+	whiteQueenSideEmpty Bitboard = (1 << 1) | (1 << 2) | (1 << 3)
+	// Black kingside: f8, g8 (indices 61, 62)
+	blackKingSideEmpty Bitboard = (1 << 61) | (1 << 62)
+	// Black queenside: b8, c8, d8 (indices 57, 58, 59)
+	blackQueenSideEmpty Bitboard = (1 << 57) | (1 << 58) | (1 << 59)
+)
+
+// appendCastlingMoves generates castling moves if legal.
+// Checks: castle rights (CastleSide flags) and empty squares between king and rook.
+// Note: Does NOT check if king passes through attacked squares (requires isSquareAttacked).
+func (position Position) appendCastlingMoves(moves []Move, allPieces Bitboard) []Move {
+	if position.CastleSide == 0 {
+		return moves
+	}
+
+	if position.WhiteMove {
+		// White kingside: O-O
+		if position.CastleSide&CastleWhiteKingSide != 0 {
+			if allPieces&whiteKingSideEmpty == 0 {
+				moves = append(moves, Move{
+					From:  IndexToBitBoard(whiteKingStart),
+					To:    IndexToBitBoard(whiteKingKingSideTo),
+					Piece: King,
+					Flags: FlagCastling,
+				})
+			}
+		}
+		// White queenside: O-O-O
+		if position.CastleSide&CastleWhiteQueenSide != 0 {
+			if allPieces&whiteQueenSideEmpty == 0 {
+				moves = append(moves, Move{
+					From:  IndexToBitBoard(whiteKingStart),
+					To:    IndexToBitBoard(whiteKingQueenSideTo),
+					Piece: King,
+					Flags: FlagCastling,
+				})
+			}
+		}
+	} else {
+		// Black kingside: O-O
+		if position.CastleSide&CastleBlackKingSide != 0 {
+			if allPieces&blackKingSideEmpty == 0 {
+				moves = append(moves, Move{
+					From:  IndexToBitBoard(blackKingStart),
+					To:    IndexToBitBoard(blackKingKingSideTo),
+					Piece: King,
+					Flags: FlagCastling,
+				})
+			}
+		}
+		// Black queenside: O-O-O
+		if position.CastleSide&CastleBlackQueenSide != 0 {
+			if allPieces&blackQueenSideEmpty == 0 {
+				moves = append(moves, Move{
+					From:  IndexToBitBoard(blackKingStart),
+					To:    IndexToBitBoard(blackKingQueenSideTo),
+					Piece: King,
+					Flags: FlagCastling,
+				})
+			}
+		}
+	}
+
+	return moves
+}
 
 // promotionPieces are the pieces a pawn can promote to
 var promotionPieces = [4]Piece{Queen, Rook, Bishop, Knight}
