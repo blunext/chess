@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 	"log"
+	"math/bits"
 )
 
 // SquareMoves maps each square (Bitboard representation) to a list of move sequences.
@@ -218,7 +219,21 @@ func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) 
 	allFlat := position.Bishops | position.Knights | position.Rooks |
 		position.Queens | position.Kings | position.Pawns
 
-	for _, fromBB := range piecesInColorToMove.ToSlice() {
+	// Bit-scanning: iterate over set bits without allocating a slice.
+	// Uses CPU instruction TZCNT/BSF for O(1) bit position lookup.
+	// Example: bb = 0b00100100 (pieces on c1 and f1)
+	//   Iter 1: TrailingZeros64 → 2 (c1), then clear bit → 0b00100000
+	//   Iter 2: TrailingZeros64 → 5 (f1), then clear bit → 0b00000000
+	//   Loop ends when bb == 0
+	for bb := *piecesInColorToMove; bb != 0; {
+		// Find index of the lowest set bit (0-63)
+		fromIdx := bits.TrailingZeros64(uint64(bb))
+		// Convert index back to single-bit bitboard for map lookup
+		fromBB := Bitboard(1 << fromIdx)
+		// Clear this bit so next iteration finds the next piece
+		// &^ is AND-NOT operator: bb = bb AND (NOT fromBB)
+		bb &^= fromBB
+
 		directions := pieceMoves[pc][fromBB]
 		for _, direction := range directions {
 			for _, toBB := range direction {
