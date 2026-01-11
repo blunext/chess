@@ -240,6 +240,139 @@ func bishopAttacks(sq int, blockers Bitboard) Bitboard {
 	return Bitboard(magic.BishopMoves[sq][idx])
 }
 
+// Precomputed attack tables for jumping pieces (computed at init)
+var knightAttacks [64]Bitboard
+var kingAttacks [64]Bitboard
+
+func init() {
+	// Precompute knight attacks
+	knightOffsets := [][2]int{
+		{2, 1}, {2, -1}, {-2, 1}, {-2, -1},
+		{1, 2}, {1, -2}, {-1, 2}, {-1, -2},
+	}
+	for sq := 0; sq < 64; sq++ {
+		file := sq & 7
+		rank := sq >> 3
+		for _, off := range knightOffsets {
+			newFile := file + off[0]
+			newRank := rank + off[1]
+			if newFile >= 0 && newFile < 8 && newRank >= 0 && newRank < 8 {
+				knightAttacks[sq] |= Bitboard(1 << (newRank*8 + newFile))
+			}
+		}
+	}
+
+	// Precompute king attacks
+	kingOffsets := [][2]int{
+		{1, 0}, {-1, 0}, {0, 1}, {0, -1},
+		{1, 1}, {1, -1}, {-1, 1}, {-1, -1},
+	}
+	for sq := 0; sq < 64; sq++ {
+		file := sq & 7
+		rank := sq >> 3
+		for _, off := range kingOffsets {
+			newFile := file + off[0]
+			newRank := rank + off[1]
+			if newFile >= 0 && newFile < 8 && newRank >= 0 && newRank < 8 {
+				kingAttacks[sq] |= Bitboard(1 << (newRank*8 + newFile))
+			}
+		}
+	}
+}
+
+// IsSquareAttacked checks if a square is attacked by pieces of the given color.
+// Uses magic bitboards for sliding pieces and precomputed tables for jumping pieces.
+func (position Position) IsSquareAttacked(sq int, byWhite bool) bool {
+	sqBB := Bitboard(1 << sq)
+	allPieces := position.Pawns | position.Knights | position.Bishops |
+		position.Rooks | position.Queens | position.Kings
+
+	var attackers Bitboard
+	if byWhite {
+		attackers = position.White
+	} else {
+		attackers = position.Black
+	}
+
+	// Check pawn attacks (reverse direction - where could a pawn attack FROM to hit this square?)
+	if byWhite {
+		// White pawns attack diagonally up (+7 and +9), so we check diagonally down from target
+		whitePawns := position.Pawns & attackers
+		// A pawn at sq-7 attacks sq (if sq is not on h-file, to prevent wrap-around)
+		// A pawn at sq-9 attacks sq (if sq is not on a-file, to prevent wrap-around)
+		var pawnAttackers Bitboard
+		if sqBB&fileHMask == 0 { // target not on h-file, check sq-7 attacker
+			pawnAttackers |= sqBB >> 7
+		}
+		if sqBB&fileAMask == 0 { // target not on a-file, check sq-9 attacker
+			pawnAttackers |= sqBB >> 9
+		}
+		if whitePawns&pawnAttackers != 0 {
+			return true
+		}
+	} else {
+		// Black pawns attack diagonally down (-7 and -9), so we check diagonally up from target
+		blackPawns := position.Pawns & attackers
+		var pawnAttackers Bitboard
+		if sqBB&fileAMask == 0 { // target not on a-file, check sq+7 attacker
+			pawnAttackers |= sqBB << 7
+		}
+		if sqBB&fileHMask == 0 { // target not on h-file, check sq+9 attacker
+			pawnAttackers |= sqBB << 9
+		}
+		if blackPawns&pawnAttackers != 0 {
+			return true
+		}
+	}
+
+	// Check knight attacks
+	knights := position.Knights & attackers
+	if knightAttacks[sq]&knights != 0 {
+		return true
+	}
+
+	// Check king attacks
+	king := position.Kings & attackers
+	if kingAttacks[sq]&king != 0 {
+		return true
+	}
+
+	// Check bishop/queen attacks (diagonal)
+	bishopsQueens := (position.Bishops | position.Queens) & attackers
+	if bishopAttacks(sq, allPieces)&bishopsQueens != 0 {
+		return true
+	}
+
+	// Check rook/queen attacks (straight)
+	rooksQueens := (position.Rooks | position.Queens) & attackers
+	if rookAttacks(sq, allPieces)&rooksQueens != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsInCheck returns true if the current side's king is in check.
+func (position Position) IsInCheck() bool {
+	// Find our king
+	var ourKing Bitboard
+	if position.WhiteMove {
+		ourKing = position.Kings & position.White
+	} else {
+		ourKing = position.Kings & position.Black
+	}
+
+	if ourKing == 0 {
+		return false // No king (shouldn't happen in valid position)
+	}
+
+	// Get king square index
+	kingSq := bits.TrailingZeros64(uint64(ourKing))
+
+	// Check if enemy pieces attack the king square
+	return position.IsSquareAttacked(kingSq, !position.WhiteMove)
+}
+
 // appendSlidingMoves appends moves for a sliding piece type using Magic Bitboards.
 // Takes pre-computed piece masks to avoid redundant calculations.
 func (position Position) appendSlidingMoves(moves []Move, pc Piece, ourPieces, enemyPieces, allPieces Bitboard) []Move {
@@ -379,57 +512,90 @@ var (
 )
 
 // appendCastlingMoves generates castling moves if legal.
-// Checks: castle rights (CastleSide flags) and empty squares between king and rook.
-// Note: Does NOT check if king passes through attacked squares (requires isSquareAttacked).
+// Checks:
+// - Castle rights (CastleSide flags)
+// - Empty squares between king and rook
+// - King not in check, and doesn't pass through attacked squares
 func (position Position) appendCastlingMoves(moves []Move, allPieces Bitboard) []Move {
 	if position.CastleSide == 0 {
 		return moves
 	}
 
+	// Determine attacker color (enemy)
+	enemyIsWhite := !position.WhiteMove
+
 	if position.WhiteMove {
-		// White kingside: O-O
+		// White castling - squares must not be attacked by black
+
+		// White kingside: O-O (e1 -> g1)
+		// King passes through e1, f1, g1
 		if position.CastleSide&CastleWhiteKingSide != 0 {
 			if allPieces&whiteKingSideEmpty == 0 {
-				moves = append(moves, Move{
-					From:  IndexToBitBoard(whiteKingStart),
-					To:    IndexToBitBoard(whiteKingKingSideTo),
-					Piece: King,
-					Flags: FlagCastling,
-				})
+				// Check e1, f1, g1 are not attacked
+				if !position.IsSquareAttacked(4, enemyIsWhite) && // e1
+					!position.IsSquareAttacked(5, enemyIsWhite) && // f1
+					!position.IsSquareAttacked(6, enemyIsWhite) { // g1
+					moves = append(moves, Move{
+						From:  IndexToBitBoard(whiteKingStart),
+						To:    IndexToBitBoard(whiteKingKingSideTo),
+						Piece: King,
+						Flags: FlagCastling,
+					})
+				}
 			}
 		}
-		// White queenside: O-O-O
+
+		// White queenside: O-O-O (e1 -> c1)
+		// King passes through e1, d1, c1 (b1 can be attacked, only rook passes)
 		if position.CastleSide&CastleWhiteQueenSide != 0 {
 			if allPieces&whiteQueenSideEmpty == 0 {
-				moves = append(moves, Move{
-					From:  IndexToBitBoard(whiteKingStart),
-					To:    IndexToBitBoard(whiteKingQueenSideTo),
-					Piece: King,
-					Flags: FlagCastling,
-				})
+				// Check e1, d1, c1 are not attacked
+				if !position.IsSquareAttacked(4, enemyIsWhite) && // e1
+					!position.IsSquareAttacked(3, enemyIsWhite) && // d1
+					!position.IsSquareAttacked(2, enemyIsWhite) { // c1
+					moves = append(moves, Move{
+						From:  IndexToBitBoard(whiteKingStart),
+						To:    IndexToBitBoard(whiteKingQueenSideTo),
+						Piece: King,
+						Flags: FlagCastling,
+					})
+				}
 			}
 		}
 	} else {
-		// Black kingside: O-O
+		// Black castling - squares must not be attacked by white
+
+		// Black kingside: O-O (e8 -> g8)
 		if position.CastleSide&CastleBlackKingSide != 0 {
 			if allPieces&blackKingSideEmpty == 0 {
-				moves = append(moves, Move{
-					From:  IndexToBitBoard(blackKingStart),
-					To:    IndexToBitBoard(blackKingKingSideTo),
-					Piece: King,
-					Flags: FlagCastling,
-				})
+				// Check e8, f8, g8 are not attacked
+				if !position.IsSquareAttacked(60, enemyIsWhite) && // e8
+					!position.IsSquareAttacked(61, enemyIsWhite) && // f8
+					!position.IsSquareAttacked(62, enemyIsWhite) { // g8
+					moves = append(moves, Move{
+						From:  IndexToBitBoard(blackKingStart),
+						To:    IndexToBitBoard(blackKingKingSideTo),
+						Piece: King,
+						Flags: FlagCastling,
+					})
+				}
 			}
 		}
-		// Black queenside: O-O-O
+
+		// Black queenside: O-O-O (e8 -> c8)
 		if position.CastleSide&CastleBlackQueenSide != 0 {
 			if allPieces&blackQueenSideEmpty == 0 {
-				moves = append(moves, Move{
-					From:  IndexToBitBoard(blackKingStart),
-					To:    IndexToBitBoard(blackKingQueenSideTo),
-					Piece: King,
-					Flags: FlagCastling,
-				})
+				// Check e8, d8, c8 are not attacked
+				if !position.IsSquareAttacked(60, enemyIsWhite) && // e8
+					!position.IsSquareAttacked(59, enemyIsWhite) && // d8
+					!position.IsSquareAttacked(58, enemyIsWhite) { // c8
+					moves = append(moves, Move{
+						From:  IndexToBitBoard(blackKingStart),
+						To:    IndexToBitBoard(blackKingQueenSideTo),
+						Piece: King,
+						Flags: FlagCastling,
+					})
+				}
 			}
 		}
 	}

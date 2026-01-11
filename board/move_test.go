@@ -878,3 +878,258 @@ func TestCastlingMoves_NoRights(t *testing.T) {
 		assert.Equal(t, FlagNone, m.Flags&FlagCastling, "Should not have castling flag")
 	}
 }
+
+func TestCastlingMoves_AttackedSquare(t *testing.T) {
+	// Black rook on f8 attacks f1 - white cannot castle kingside
+	position := CreatePositionFormFEN("5r2/8/8/8/8/8/8/R3K2R w KQ - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Should NOT have kingside castling (f1 is attacked)
+	for _, m := range moves {
+		if m.Flags&FlagCastling != 0 && m.To == IndexToBitBoard(6) {
+			t.Error("Should not have kingside castling when f1 is attacked")
+		}
+	}
+
+	// Should still have queenside castling
+	var hasQueenside bool
+	for _, m := range moves {
+		if m.Flags&FlagCastling != 0 && m.To == IndexToBitBoard(2) {
+			hasQueenside = true
+			break
+		}
+	}
+	assert.True(t, hasQueenside, "Should have queenside castling")
+}
+
+func TestCastlingMoves_KingInCheck(t *testing.T) {
+	// Black rook on e8 attacks e1 - white king is in check, cannot castle at all
+	position := CreatePositionFormFEN("4r3/8/8/8/8/8/8/R3K2R w KQ - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Should NOT have any castling moves (king is in check)
+	for _, m := range moves {
+		if m.Flags&FlagCastling != 0 {
+			t.Error("Should not have castling when king is in check")
+		}
+	}
+}
+
+// === IsSquareAttacked Tests ===
+
+func TestIsSquareAttacked_ByPawn(t *testing.T) {
+	// White pawn on e4 attacks d5 and f5
+	position := CreatePositionFormFEN("8/8/8/8/4P3/8/8/8 w - - 0 1")
+
+	// d5 (index 35) should be attacked by white
+	assert.True(t, position.IsSquareAttacked(35, true), "d5 should be attacked by white pawn")
+	// f5 (index 37) should be attacked by white
+	assert.True(t, position.IsSquareAttacked(37, true), "f5 should be attacked by white pawn")
+	// e5 (index 36) should NOT be attacked (pawns don't attack forward)
+	assert.False(t, position.IsSquareAttacked(36, true), "e5 should not be attacked by white pawn")
+}
+
+func TestIsSquareAttacked_ByBlackPawn(t *testing.T) {
+	// Black pawn on e5 attacks d4 and f4
+	position := CreatePositionFormFEN("8/8/8/4p3/8/8/8/8 b - - 0 1")
+
+	// d4 (index 27) should be attacked by black
+	assert.True(t, position.IsSquareAttacked(27, false), "d4 should be attacked by black pawn")
+	// f4 (index 29) should be attacked by black
+	assert.True(t, position.IsSquareAttacked(29, false), "f4 should be attacked by black pawn")
+}
+
+func TestIsSquareAttacked_ByKnight(t *testing.T) {
+	// White knight on e4 (index 28)
+	position := CreatePositionFormFEN("8/8/8/8/4N3/8/8/8 w - - 0 1")
+
+	// Knight attacks 8 squares: d6, f6, c5, g5, c3, g3, d2, f2
+	assert.True(t, position.IsSquareAttacked(43, true), "d6 should be attacked by knight")
+	assert.True(t, position.IsSquareAttacked(45, true), "f6 should be attacked by knight")
+	assert.True(t, position.IsSquareAttacked(34, true), "c5 should be attacked by knight")
+	assert.True(t, position.IsSquareAttacked(38, true), "g5 should be attacked by knight")
+	// e5 (directly above) should NOT be attacked
+	assert.False(t, position.IsSquareAttacked(36, true), "e5 should not be attacked by knight")
+}
+
+func TestIsSquareAttacked_ByRook(t *testing.T) {
+	// White rook on e4 (index 28)
+	position := CreatePositionFormFEN("8/8/8/8/4R3/8/8/8 w - - 0 1")
+
+	// Rook attacks along file and rank
+	assert.True(t, position.IsSquareAttacked(60, true), "e8 should be attacked by rook")
+	assert.True(t, position.IsSquareAttacked(4, true), "e1 should be attacked by rook")
+	assert.True(t, position.IsSquareAttacked(24, true), "a4 should be attacked by rook")
+	assert.True(t, position.IsSquareAttacked(31, true), "h4 should be attacked by rook")
+	// d5 (diagonal) should NOT be attacked
+	assert.False(t, position.IsSquareAttacked(35, true), "d5 should not be attacked by rook")
+}
+
+func TestIsSquareAttacked_ByBishop(t *testing.T) {
+	// White bishop on e4 (index 28)
+	position := CreatePositionFormFEN("8/8/8/8/4B3/8/8/8 w - - 0 1")
+
+	// Bishop attacks diagonals from e4:
+	// NE: f5(37), g6(46), h7(55)
+	// NW: d5(35), c6(42), b7(49), a8(56)
+	// SE: f3(21), g2(14), h1(7)
+	// SW: d3(19), c2(10), b1(1)
+	assert.True(t, position.IsSquareAttacked(55, true), "h7 should be attacked by bishop (NE diagonal)")
+	assert.True(t, position.IsSquareAttacked(1, true), "b1 should be attacked by bishop (SW diagonal)")
+	assert.True(t, position.IsSquareAttacked(56, true), "a8 should be attacked by bishop (NW diagonal)")
+	// e5 (straight up) should NOT be attacked
+	assert.False(t, position.IsSquareAttacked(36, true), "e5 should not be attacked by bishop")
+}
+
+func TestIsSquareAttacked_ByQueen(t *testing.T) {
+	// White queen on e4 (index 28)
+	position := CreatePositionFormFEN("8/8/8/8/4Q3/8/8/8 w - - 0 1")
+
+	// Queen attacks both straight and diagonal
+	assert.True(t, position.IsSquareAttacked(60, true), "e8 should be attacked by queen (vertical)")
+	assert.True(t, position.IsSquareAttacked(55, true), "h7 should be attacked by queen (NE diagonal)")
+	assert.True(t, position.IsSquareAttacked(24, true), "a4 should be attacked by queen (horizontal)")
+}
+
+func TestIsSquareAttacked_Blocked(t *testing.T) {
+	// White rook on a1, blocked by own pawn on a3
+	position := CreatePositionFormFEN("8/8/8/8/8/P7/8/R7 w - - 0 1")
+
+	// a2 (index 8) should be attacked
+	assert.True(t, position.IsSquareAttacked(8, true), "a2 should be attacked by rook")
+	// a4 (index 24) should NOT be attacked (blocked by pawn)
+	assert.False(t, position.IsSquareAttacked(24, true), "a4 should not be attacked (blocked)")
+}
+
+// === IsInCheck Tests ===
+
+func TestIsInCheck_WhiteInCheck(t *testing.T) {
+	// White king on e1, black rook on e8 - white is in check
+	position := CreatePositionFormFEN("4r3/8/8/8/8/8/8/4K3 w - - 0 1")
+
+	assert.True(t, position.IsInCheck(), "White should be in check")
+}
+
+func TestIsInCheck_BlackInCheck(t *testing.T) {
+	// Black king on e8, white queen on e1 - black is in check
+	position := CreatePositionFormFEN("4k3/8/8/8/8/8/8/4Q3 b - - 0 1")
+
+	assert.True(t, position.IsInCheck(), "Black should be in check")
+}
+
+func TestIsInCheck_NotInCheck(t *testing.T) {
+	// Initial position - no one is in check
+	position := CreatePositionFormFEN(InitialPosition)
+
+	assert.False(t, position.IsInCheck(), "White should not be in check in initial position")
+}
+
+func TestIsInCheck_KnightCheck(t *testing.T) {
+	// White king on e1, black knight on d3 - white is in check
+	position := CreatePositionFormFEN("8/8/8/8/8/3n4/8/4K3 w - - 0 1")
+
+	assert.True(t, position.IsInCheck(), "White should be in check by knight")
+}
+
+func TestIsInCheck_PawnCheck(t *testing.T) {
+	// White king on e4, black pawn on f5 - white is in check
+	position := CreatePositionFormFEN("8/8/8/5p2/4K3/8/8/8 w - - 0 1")
+
+	assert.True(t, position.IsInCheck(), "White should be in check by pawn")
+}
+
+// === Edge Case Tests ===
+
+func TestIsSquareAttacked_PawnOnAFile(t *testing.T) {
+	// White pawn on a4 - should not attack h3 (wrap-around protection)
+	position := CreatePositionFormFEN("8/8/8/8/P7/8/8/8 w - - 0 1")
+
+	// a4 pawn attacks b5 only
+	assert.True(t, position.IsSquareAttacked(33, true), "b5 should be attacked by a4 pawn")
+	// Should NOT attack h3 (index 23) - that would be wrap-around
+	assert.False(t, position.IsSquareAttacked(23, true), "h3 should NOT be attacked (wrap-around)")
+}
+
+func TestIsSquareAttacked_PawnOnHFile(t *testing.T) {
+	// White pawn on h4 - should not attack a5 (wrap-around protection)
+	position := CreatePositionFormFEN("8/8/8/8/7P/8/8/8 w - - 0 1")
+
+	// h4 pawn attacks g5 only
+	assert.True(t, position.IsSquareAttacked(38, true), "g5 should be attacked by h4 pawn")
+	// Should NOT attack a5 (index 32) - that would be wrap-around
+	assert.False(t, position.IsSquareAttacked(32, true), "a5 should NOT be attacked (wrap-around)")
+}
+
+func TestIsSquareAttacked_BlackPawnOnAFile(t *testing.T) {
+	// Black pawn on a5 - should not attack h4 (wrap-around protection)
+	position := CreatePositionFormFEN("8/8/8/p7/8/8/8/8 b - - 0 1")
+
+	// a5 pawn attacks b4 only
+	assert.True(t, position.IsSquareAttacked(25, false), "b4 should be attacked by a5 pawn")
+	// Should NOT attack h4 (index 31) - that would be wrap-around
+	assert.False(t, position.IsSquareAttacked(31, false), "h4 should NOT be attacked (wrap-around)")
+}
+
+func TestIsSquareAttacked_ByKing(t *testing.T) {
+	// White king on e4 attacks all 8 surrounding squares
+	position := CreatePositionFormFEN("8/8/8/8/4K3/8/8/8 w - - 0 1")
+
+	// King attacks: d3, e3, f3, d4, f4, d5, e5, f5
+	assert.True(t, position.IsSquareAttacked(19, true), "d3 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(20, true), "e3 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(21, true), "f3 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(27, true), "d4 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(29, true), "f4 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(35, true), "d5 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(36, true), "e5 should be attacked by king")
+	assert.True(t, position.IsSquareAttacked(37, true), "f5 should be attacked by king")
+	// Not attacked: e4 itself, distant squares
+	assert.False(t, position.IsSquareAttacked(44, true), "e6 should NOT be attacked by king (too far)")
+}
+
+func TestIsSquareAttacked_MultipleAttackers(t *testing.T) {
+	// e4 attacked by both white queen on e1 and white bishop on h7
+	position := CreatePositionFormFEN("8/7B/8/8/8/8/8/4Q3 w - - 0 1")
+
+	// e4 (index 28) should be attacked
+	assert.True(t, position.IsSquareAttacked(28, true), "e4 should be attacked by multiple pieces")
+}
+
+func TestIsInCheck_BishopCheck(t *testing.T) {
+	// White king on e1, black bishop on a5 - white is in check (diagonal)
+	position := CreatePositionFormFEN("8/8/8/b7/8/8/8/4K3 w - - 0 1")
+
+	assert.True(t, position.IsInCheck(), "White should be in check by bishop")
+}
+
+func TestIsInCheck_QueenCheck(t *testing.T) {
+	// Black king on e8, white queen on e1 - black is in check (file)
+	position := CreatePositionFormFEN("4k3/8/8/8/8/8/8/4Q3 b - - 0 1")
+
+	assert.True(t, position.IsInCheck(), "Black should be in check by queen")
+}
+
+func TestIsSquareAttacked_KingEdgeOfBoard(t *testing.T) {
+	// King on a1 corner - only 3 squares attacked
+	position := CreatePositionFormFEN("8/8/8/8/8/8/8/K7 w - - 0 1")
+
+	assert.True(t, position.IsSquareAttacked(1, true), "b1 should be attacked by king on a1")
+	assert.True(t, position.IsSquareAttacked(8, true), "a2 should be attacked by king on a1")
+	assert.True(t, position.IsSquareAttacked(9, true), "b2 should be attacked by king on a1")
+	// King should NOT attack wrapping squares
+	assert.False(t, position.IsSquareAttacked(7, true), "h1 should NOT be attacked by king on a1")
+}
