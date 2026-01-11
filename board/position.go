@@ -183,23 +183,25 @@ func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Positi
 	return positions
 }
 
-// GenerateSlidingMoves generates all pseudo-legal moves for sliding pieces
-// (Bishop, Rook, Queen) for the side to move.
+// GenerateMoves generates all pseudo-legal moves for the side to move.
 //
 // Returns a slice of Move structs instead of full Position objects,
 // making it more memory-efficient for move generation in search.
 //
 // Currently generates moves to empty squares only (no captures).
-func (position Position) GenerateSlidingMoves(pieceMoves PieceMoves) []Move {
+// Supports: Bishop, Rook, Queen (sliding), Knight (jumping).
+func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	var moves []Move
 
-	// Generate moves for all sliding piece types
+	// Sliding pieces (can be blocked along a direction)
 	slidingPieces := []Piece{Bishop, Rook, Queen}
-
 	for _, pc := range slidingPieces {
 		pieceMoves := position.generateMovesForPiece(pieceMoves, pc)
 		moves = append(moves, pieceMoves...)
 	}
+
+	// Jumping pieces (single target squares, no blocking)
+	moves = append(moves, position.generateJumpingMoves(pieceMoves, Knight)...)
 
 	return moves
 }
@@ -256,6 +258,59 @@ func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) 
 					Captured: Empty,
 				})
 			}
+		}
+	}
+
+	return moves
+}
+
+// generateJumpingMoves generates moves for jumping pieces (Knight, King).
+// Unlike sliding pieces, jumping pieces don't have directions - they have
+// a flat list of target squares and cannot be blocked.
+func (position Position) generateJumpingMoves(pieceMoves PieceMoves, pc Piece) []Move {
+	var moves []Move
+
+	// Get our pieces mask
+	var ourPieces Bitboard
+	if position.WhiteMove {
+		ourPieces = position.White
+	} else {
+		ourPieces = position.Black
+	}
+
+	// Get pieces of this type for side to move
+	pieceBB := *position.GetPiece(pc) & ourPieces
+	if pieceBB == 0 {
+		return nil
+	}
+
+	// All pieces on the board (for blocking check - can't land on own pieces)
+	allOurs := ourPieces
+
+	// Bit-scan through each piece
+	for bb := pieceBB; bb != 0; {
+		fromIdx := bits.TrailingZeros64(uint64(bb))
+		fromBB := Bitboard(1 << fromIdx)
+		bb &^= fromBB
+
+		// Jumping pieces have one "direction" with all target squares
+		directions := pieceMoves[pc][fromBB]
+		if len(directions) == 0 {
+			continue
+		}
+		targets := directions[0] // flat list of all jump targets
+
+		for _, toBB := range targets {
+			// Can't land on our own pieces
+			if allOurs&toBB == toBB {
+				continue
+			}
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    pc,
+				Captured: Empty,
+			})
 		}
 	}
 

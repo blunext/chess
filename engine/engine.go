@@ -11,7 +11,7 @@ func Run() {
 	pieceMoves := generator.NewGenerator()
 
 	// Generate moves using new Move struct
-	moves := position.GenerateSlidingMoves(pieceMoves)
+	moves := position.GenerateMoves(pieceMoves)
 
 	fmt.Println("Generated sliding piece moves:")
 	for _, m := range moves {
