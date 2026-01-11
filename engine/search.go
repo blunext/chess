@@ -1,13 +1,15 @@
-package board
+package engine
+
+import "chess/board"
 
 // SearchResult contains the best move and its evaluation.
 type SearchResult struct {
-	Move  Move
+	Move  board.Move
 	Score int
 }
 
 // Search finds the best move using minimax algorithm.
-func Search(pos Position, pieceMoves PieceMoves, depth int) SearchResult {
+func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchResult {
 	moves := pos.GenerateLegalMoves(pieceMoves)
 
 	if len(moves) == 0 {
@@ -23,7 +25,7 @@ func Search(pos Position, pieceMoves PieceMoves, depth int) SearchResult {
 		return SearchResult{Score: 0}
 	}
 
-	var bestMove Move
+	var bestMove board.Move
 	var bestScore int
 
 	if pos.WhiteMove {
@@ -56,7 +58,7 @@ func Search(pos Position, pieceMoves PieceMoves, depth int) SearchResult {
 }
 
 // minimax returns the evaluation score for a position.
-func minimax(pos *Position, pieceMoves PieceMoves, depth int) int {
+func minimax(pos *board.Position, pieceMoves board.PieceMoves, depth int) int {
 	if depth == 0 {
 		return Evaluate(*pos)
 	}

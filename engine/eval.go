@@ -1,4 +1,6 @@
-package board
+package engine
+
+import "chess/board"
 
 // Piece values in centipawns
 const (
@@ -11,14 +13,14 @@ const (
 
 // Evaluate returns the position evaluation in centipawns.
 // Positive = white is better, negative = black is better.
-func Evaluate(pos Position) int {
+func Evaluate(pos board.Position) int {
 	white := materialCount(pos, pos.White)
 	black := materialCount(pos, pos.Black)
 	return white - black
 }
 
 // materialCount calculates total material for pieces on given squares.
-func materialCount(pos Position, color Bitboard) int {
+func materialCount(pos board.Position, color board.Bitboard) int {
 	score := 0
 	score += popCount(pos.Pawns&color) * PawnValue
 	score += popCount(pos.Knights&color) * KnightValue
@@ -29,7 +31,7 @@ func materialCount(pos Position, color Bitboard) int {
 }
 
 // popCount returns the number of set bits in a bitboard.
-func popCount(b Bitboard) int {
+func popCount(b board.Bitboard) int {
 	count := 0
 	for b != 0 {
 		b &= b - 1
