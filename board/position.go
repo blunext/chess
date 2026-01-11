@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"math/bits"
+
+	"chess/magic"
 )
 
 // SquareMoves maps each square (Bitboard representation) to a list of move sequences.
@@ -188,16 +190,15 @@ func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Positi
 // Returns a slice of Move structs instead of full Position objects,
 // making it more memory-efficient for move generation in search.
 //
-// Currently generates moves to empty squares only (no captures).
-// Supports: Bishop, Rook, Queen (sliding), Knight, King (jumping).
+// Uses Magic Bitboards for O(1) sliding piece move generation.
+// Supports: Bishop, Rook, Queen (sliding with magic BB), Knight, King (jumping).
 func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	var moves []Move
 
-	// Sliding pieces (can be blocked along a direction)
+	// Sliding pieces using Magic Bitboards (O(1) lookup per piece)
 	slidingPieces := []Piece{Bishop, Rook, Queen}
 	for _, pc := range slidingPieces {
-		pieceMoves := position.generateMovesForPiece(pieceMoves, pc)
-		moves = append(moves, pieceMoves...)
+		moves = append(moves, position.generateSlidingMovesWithMagic(pc)...)
 	}
 
 	// Jumping pieces (single target squares, no blocking)
@@ -209,58 +210,84 @@ func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	return moves
 }
 
-// generateMovesForPiece generates pseudo-legal moves for a single piece type.
-// Helper function used by GenerateSlidingMoves.
-func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) []Move {
-	// TODO: consider pre-allocating: moves := make([]Move, 0, 32)
-	var moves []Move
+// rookAttacks returns attack bitboard for a rook at given square with blockers.
+func rookAttacks(sq int, blockers Bitboard) Bitboard {
+	m := magic.RookMagics[sq]
+	idx := (uint64(blockers&Bitboard(m.Mask)) * m.Number) >> m.Shift
+	return Bitboard(magic.RookMoves[sq][idx])
+}
 
-	// We only need pieces of one type for the side to move.
-	var ourPieces Bitboard
+// bishopAttacks returns attack bitboard for a bishop at given square with blockers.
+func bishopAttacks(sq int, blockers Bitboard) Bitboard {
+	m := magic.BishopMagics[sq]
+	idx := (uint64(blockers&Bitboard(m.Mask)) * m.Number) >> m.Shift
+	return Bitboard(magic.BishopMoves[sq][idx])
+}
+
+// generateSlidingMovesWithMagic generates moves for sliding pieces using Magic Bitboards.
+// This is O(1) lookup per piece instead of O(n) direction iteration.
+func (position Position) generateSlidingMovesWithMagic(pc Piece) []Move {
+	// Get our and enemy pieces masks
+	var ourPieces, enemyPieces Bitboard
 	if position.WhiteMove {
 		ourPieces = position.White
+		enemyPieces = position.Black
 	} else {
 		ourPieces = position.Black
+		enemyPieces = position.White
 	}
 
-	// Mask: only pieces of type 'pc' that belong to side to move
+	// Get pieces of this type for side to move
 	pieceBB := *position.GetPiece(pc) & ourPieces
 	if pieceBB == 0 {
 		return nil
 	}
 
-	// Get all pieces on the board
-	allFlat := position.Bishops | position.Knights | position.Rooks |
+	// All pieces on the board (blockers for magic lookup)
+	allPieces := position.Bishops | position.Knights | position.Rooks |
 		position.Queens | position.Kings | position.Pawns
 
-	// Bit-scanning: iterate over set bits without allocating a slice.
-	// Uses CPU instruction TZCNT/BSF for O(1) bit position lookup.
-	// Example: bb = 0b00100100 (pieces on c1 and f1)
-	//   Iter 1: TrailingZeros64 → 2 (c1), then clear bit → 0b00100000
-	//   Iter 2: TrailingZeros64 → 5 (f1), then clear bit → 0b00000000
-	//   Loop ends when bb == 0
+	// Pre-allocate moves slice (estimate: ~10 moves per piece on average)
+	moves := make([]Move, 0, bits.OnesCount64(uint64(pieceBB))*10)
+
+	// Bit-scan through each piece
 	for bb := pieceBB; bb != 0; {
-		// Find index of the lowest set bit (0-63)
 		fromIdx := bits.TrailingZeros64(uint64(bb))
-		// Convert index back to single-bit bitboard for map lookup
 		fromBB := Bitboard(1 << fromIdx)
-		// Clear this bit so next iteration finds the next piece
-		// &^ is AND-NOT operator: bb = bb AND (NOT fromBB)
 		bb &^= fromBB
 
-		directions := pieceMoves[pc][fromBB]
-		for _, direction := range directions {
-			for _, toBB := range direction {
-				if allFlat&toBB == toBB { // piece in the way, stop
-					break
-				}
-				moves = append(moves, Move{
-					From:     fromBB,
-					To:       toBB,
-					Piece:    pc,
-					Captured: Empty,
-				})
+		// Get attacks using Magic Bitboards
+		var attacks Bitboard
+		switch pc {
+		case Rook:
+			attacks = rookAttacks(fromIdx, allPieces)
+		case Bishop:
+			attacks = bishopAttacks(fromIdx, allPieces)
+		case Queen:
+			attacks = rookAttacks(fromIdx, allPieces) | bishopAttacks(fromIdx, allPieces)
+		}
+
+		// Remove our own pieces from attacks (can't capture own pieces)
+		attacks &^= ourPieces
+
+		// Generate moves for each attack square
+		for attacks != 0 {
+			toIdx := bits.TrailingZeros64(uint64(attacks))
+			toBB := Bitboard(1 << toIdx)
+			attacks &^= toBB
+
+			// Detect capture
+			captured := Empty
+			if enemyPieces&toBB != 0 {
+				captured = position.pieceAt(toBB)
 			}
+
+			moves = append(moves, Move{
+				From:     fromBB,
+				To:       toBB,
+				Piece:    pc,
+				Captured: captured,
+			})
 		}
 	}
 
@@ -338,6 +365,30 @@ func (position *Position) GetPiece(piece Piece) *Bitboard {
 		log.Fatal("unhandled piece")
 		return nil
 	}
+}
+
+// pieceAt returns the piece type at the given square bitboard.
+// Returns Empty if no piece is found.
+func (position Position) pieceAt(sq Bitboard) Piece {
+	if position.Pawns&sq != 0 {
+		return Pawn
+	}
+	if position.Knights&sq != 0 {
+		return Knight
+	}
+	if position.Bishops&sq != 0 {
+		return Bishop
+	}
+	if position.Rooks&sq != 0 {
+		return Rook
+	}
+	if position.Queens&sq != 0 {
+		return Queen
+	}
+	if position.Kings&sq != 0 {
+		return King
+	}
+	return Empty
 }
 
 // Pretty returns a compact, human-readable representation of the chess position

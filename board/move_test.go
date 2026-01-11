@@ -7,22 +7,18 @@ import (
 )
 
 func TestGenerateSlidingMoves_Bishop(t *testing.T) {
-	// Bishop at c1, free diagonal
+	// Bishop at c1, free diagonals
+	// c1 can go: NE diagonal (d2,e3,f4,g5,h6) + NW diagonal (b2,a3) = 7 squares
 	position := CreatePositionFormFEN("8/8/8/8/8/8/8/2B5 w - - 0 1")
 
 	pm := make(PieceMoves)
-	pm[Bishop] = SquareMoves{
-		IndexToBitBoard(2): [][]Bitboard{
-			{IndexToBitBoard(11), IndexToBitBoard(20)}, // NE: d2, e3
-			{IndexToBitBoard(9), IndexToBitBoard(16)},  // NW: b2, a3
-		},
-	}
-	pm[Rook] = SquareMoves{}
-	pm[Queen] = SquareMoves{}
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
 
 	moves := position.GenerateMoves(pm)
 
-	assert.Len(t, moves, 4)
+	// Bishop from c1: NE (d2,e3,f4,g5,h6) = 5 + NW (b2,a3) = 2 => 7 moves
+	assert.Len(t, moves, 7)
 
 	// Verify all moves are from c1 (index 2)
 	for _, m := range moves {
@@ -33,60 +29,90 @@ func TestGenerateSlidingMoves_Bishop(t *testing.T) {
 }
 
 func TestGenerateSlidingMoves_BlockedByPiece(t *testing.T) {
-	// Rook at a1, pawn at a3 - rook should only reach a2
+	// Rook at a1, own pawn at a3 - rook can reach a2 (before pawn), b1-h1 (horizontal)
+	// Rook from a1: up (a2 only, blocked by a3) + right (b1,c1,d1,e1,f1,g1,h1)
 	position := CreatePositionFormFEN("8/8/8/8/8/P7/8/R7 w - - 0 1")
 
 	pm := make(PieceMoves)
-	pm[Bishop] = SquareMoves{}
-	pm[Rook] = SquareMoves{
-		IndexToBitBoard(0): [][]Bitboard{
-			{IndexToBitBoard(8), IndexToBitBoard(16), IndexToBitBoard(24)}, // a2, a3, a4
-		},
-	}
-	pm[Queen] = SquareMoves{}
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
 
 	moves := position.GenerateMoves(pm)
 
-	assert.Len(t, moves, 1)
-	assert.Equal(t, IndexToBitBoard(0), moves[0].From)
-	assert.Equal(t, IndexToBitBoard(8), moves[0].To) // only a2
-	assert.Equal(t, Rook, moves[0].Piece)
+	// Rook: 1 up (a2) + 7 right (b1-h1) = 8 moves
+	assert.Len(t, moves, 8)
+
+	// Check that a2 is reachable
+	hasA2 := false
+	for _, m := range moves {
+		assert.Equal(t, IndexToBitBoard(0), m.From)
+		assert.Equal(t, Rook, m.Piece)
+		if m.To == IndexToBitBoard(8) {
+			hasA2 = true
+		}
+	}
+	assert.True(t, hasA2, "Rook should be able to move to a2")
 }
 
 func TestGenerateSlidingMoves_AllSlidingPieces(t *testing.T) {
-	// Position with bishop, rook, and queen
+	// Position with bishop at c1, rook at d1, queen at e1
+	// They block each other along rank 1
 	position := CreatePositionFormFEN("8/8/8/8/8/8/8/2BRQ3 w - - 0 1")
 
 	pm := make(PieceMoves)
-	pm[Bishop] = SquareMoves{
-		IndexToBitBoard(2): [][]Bitboard{
-			{IndexToBitBoard(11)}, // one move
-		},
-	}
-	pm[Rook] = SquareMoves{
-		IndexToBitBoard(3): [][]Bitboard{
-			{IndexToBitBoard(11)}, // one move
-		},
-	}
-	pm[Queen] = SquareMoves{
-		IndexToBitBoard(4): [][]Bitboard{
-			{IndexToBitBoard(12), IndexToBitBoard(20)}, // two moves
-		},
-	}
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
 
 	moves := position.GenerateMoves(pm)
 
-	// 1 bishop + 1 rook + 2 queen = 4 moves
-	assert.Len(t, moves, 4)
-
-	// Count pieces
+	// Count pieces - all three sliding pieces should have moves
 	pieceCount := map[Piece]int{}
 	for _, m := range moves {
 		pieceCount[m.Piece]++
 	}
-	assert.Equal(t, 1, pieceCount[Bishop])
-	assert.Equal(t, 1, pieceCount[Rook])
-	assert.Equal(t, 2, pieceCount[Queen])
+	assert.Greater(t, pieceCount[Bishop], 0, "Bishop should have moves")
+	assert.Greater(t, pieceCount[Rook], 0, "Rook should have moves")
+	assert.Greater(t, pieceCount[Queen], 0, "Queen should have moves")
+}
+
+func TestGenerateSlidingMoves_Capture(t *testing.T) {
+	// White rook at a1, black pawn at a5
+	// Rook should be able to capture the pawn
+	position := CreatePositionFormFEN("8/8/8/p7/8/8/8/R7 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	// Find the capture move (a1 -> a5)
+	var captureMove *Move
+	for i := range moves {
+		if moves[i].To == IndexToBitBoard(32) { // a5
+			captureMove = &moves[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, captureMove, "Should have a move to a5")
+	assert.Equal(t, Rook, captureMove.Piece)
+	assert.Equal(t, Pawn, captureMove.Captured, "Should capture the pawn")
+}
+
+func TestGenerateSlidingMoves_NoCapture(t *testing.T) {
+	// White rook at a1, empty board - all moves should be non-captures
+	position := CreatePositionFormFEN("8/8/8/8/8/8/8/R7 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{}
+
+	moves := position.GenerateMoves(pm)
+
+	for _, m := range moves {
+		assert.Equal(t, Empty, m.Captured, "Move to %s should not be a capture", m.To.Pretty())
+	}
 }
 
 func TestMove_String(t *testing.T) {

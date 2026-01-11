@@ -1,8 +1,9 @@
-package magic
+package magic_test
 
 import (
 	"chess/board"
 	"chess/generator"
+	"chess/magic"
 	"testing"
 )
 
@@ -10,7 +11,7 @@ import (
 // produce the same results as our manual move generators.
 func TestMagicBitboardsCorrectness(t *testing.T) {
 	// Load magic data first
-	if err := Prepare(); err != nil {
+	if err := magic.Prepare(); err != nil {
 		t.Fatalf("Failed to load magic data: %v", err)
 	}
 
@@ -45,15 +46,15 @@ func testRookMagic(t *testing.T, square int, refMoves board.SquareMoves) {
 
 	for _, blockers := range testBlockers {
 		// Get magic result
-		m := RookMagics[square]
-		maskedBlockers := blockers & m.Mask
+		m := magic.RookMagics[square]
+		maskedBlockers := magic.Bitboard(blockers) & m.Mask
 		index := (uint64(maskedBlockers) * m.Number) >> m.Shift
-		magicResult := RookMoves[square][index]
+		magicResult := magic.RookMoves[square][index]
 
 		// Get reference result by simulating direction-based generation
 		refResult := simulateDirectionMoves(refDirections, blockers)
 
-		if magicResult != refResult {
+		if magicResult != magic.Bitboard(refResult) {
 			t.Errorf("Rook at %s with blockers %016x: magic=%016x, ref=%016x",
 				board.IndexToAlgebraic(square), blockers, magicResult, refResult)
 		}
@@ -71,14 +72,14 @@ func testBishopMagic(t *testing.T, square int, refMoves board.SquareMoves) {
 	}
 
 	for _, blockers := range testBlockers {
-		m := BishopMagics[square]
-		maskedBlockers := blockers & m.Mask
+		m := magic.BishopMagics[square]
+		maskedBlockers := magic.Bitboard(blockers) & m.Mask
 		index := (uint64(maskedBlockers) * m.Number) >> m.Shift
-		magicResult := BishopMoves[square][index]
+		magicResult := magic.BishopMoves[square][index]
 
 		refResult := simulateDirectionMoves(refDirections, blockers)
 
-		if magicResult != refResult {
+		if magicResult != magic.Bitboard(refResult) {
 			t.Errorf("Bishop at %s with blockers %016x: magic=%016x, ref=%016x",
 				board.IndexToAlgebraic(square), blockers, magicResult, refResult)
 		}
