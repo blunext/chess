@@ -209,9 +209,17 @@ func (position Position) GenerateSlidingMoves(pieceMoves PieceMoves) []Move {
 func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) []Move {
 	var moves []Move
 
-	color := position.filterColor()
-	piecesInColorToMove := color.GetPiece(pc)
-	if *piecesInColorToMove == 0 {
+	// We only need pieces of one type for the side to move.
+	var ourPieces Bitboard
+	if position.WhiteMove {
+		ourPieces = position.White
+	} else {
+		ourPieces = position.Black
+	}
+
+	// Mask: only pieces of type 'pc' that belong to side to move
+	pieceBB := *position.GetPiece(pc) & ourPieces
+	if pieceBB == 0 {
 		return nil
 	}
 
@@ -225,7 +233,7 @@ func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) 
 	//   Iter 1: TrailingZeros64 → 2 (c1), then clear bit → 0b00100000
 	//   Iter 2: TrailingZeros64 → 5 (f1), then clear bit → 0b00000000
 	//   Loop ends when bb == 0
-	for bb := *piecesInColorToMove; bb != 0; {
+	for bb := pieceBB; bb != 0; {
 		// Find index of the lowest set bit (0-63)
 		fromIdx := bits.TrailingZeros64(uint64(bb))
 		// Convert index back to single-bit bitboard for map lookup
