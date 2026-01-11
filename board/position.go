@@ -189,7 +189,7 @@ func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Positi
 // making it more memory-efficient for move generation in search.
 //
 // Currently generates moves to empty squares only (no captures).
-// Supports: Bishop, Rook, Queen (sliding), Knight (jumping).
+// Supports: Bishop, Rook, Queen (sliding), Knight, King (jumping).
 func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	var moves []Move
 
@@ -201,7 +201,10 @@ func (position Position) GenerateMoves(pieceMoves PieceMoves) []Move {
 	}
 
 	// Jumping pieces (single target squares, no blocking)
-	moves = append(moves, position.generateJumpingMoves(pieceMoves, Knight)...)
+	jumpingPieces := []Piece{Knight, King}
+	for _, pc := range jumpingPieces {
+		moves = append(moves, position.generateJumpingMoves(pieceMoves, pc)...)
+	}
 
 	return moves
 }

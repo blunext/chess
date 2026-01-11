@@ -197,3 +197,50 @@ func TestGenerateJumpingMoves_TwoKnights(t *testing.T) {
 	assert.Equal(t, 2, fromB1)
 	assert.Equal(t, 2, fromG1)
 }
+
+func TestGenerateJumpingMoves_King(t *testing.T) {
+	// King at e1
+	position := CreatePositionFormFEN("8/8/8/8/8/8/8/4K3 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Bishop] = SquareMoves{}
+	pm[Rook] = SquareMoves{}
+	pm[Queen] = SquareMoves{}
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{
+			// e1 can move to: d1(3), f1(5), d2(11), e2(12), f2(13)
+			{IndexToBitBoard(3), IndexToBitBoard(5), IndexToBitBoard(11), IndexToBitBoard(12), IndexToBitBoard(13)},
+		},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	assert.Len(t, moves, 5)
+	for _, m := range moves {
+		assert.Equal(t, King, m.Piece)
+		assert.Equal(t, IndexToBitBoard(4), m.From)
+	}
+}
+
+func TestGenerateJumpingMoves_KingBlockedByOwnPieces(t *testing.T) {
+	// King at e1, pawns on d2 and f2
+	position := CreatePositionFormFEN("8/8/8/8/8/8/3PP3/4K3 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Bishop] = SquareMoves{}
+	pm[Rook] = SquareMoves{}
+	pm[Queen] = SquareMoves{}
+	pm[Knight] = SquareMoves{}
+	pm[King] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{
+			// e1 targets: d1(3), f1(5), d2(11), e2(12), f2(13)
+			{IndexToBitBoard(3), IndexToBitBoard(5), IndexToBitBoard(11), IndexToBitBoard(12), IndexToBitBoard(13)},
+		},
+	}
+
+	moves := position.GenerateMoves(pm)
+
+	// Should have 3 moves (d1, f1, e2), not d2 or f2 (blocked by pawns)
+	assert.Len(t, moves, 3)
+}
