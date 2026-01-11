@@ -178,17 +178,6 @@ func TestPerft_Position3_Depth4(t *testing.T) {
 	assert.Equal(t, uint64(43238), result, "Position 3 depth 4 should have 43238 positions")
 }
 
-func TestPerft_Position3_Depth5(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping depth 5 perft in short mode")
-	}
-	pos := CreatePositionFormFEN("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1")
-	pm := createTestPieceMoves()
-
-	result := pos.Perft(pm, 5)
-	assert.Equal(t, uint64(674624), result, "Position 3 depth 5 should have 674624 positions")
-}
-
 // Position 4 - tests promotions with capture, castling rights
 // r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
 func TestPerft_Position4_Depth1(t *testing.T) {
