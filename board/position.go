@@ -182,6 +182,62 @@ func (position Position) AllLegalMoves(pieceMoves PieceMoves, pc Piece) []Positi
 	return positions
 }
 
+// GenerateSlidingMoves generates all pseudo-legal moves for sliding pieces
+// (Bishop, Rook, Queen) for the side to move.
+//
+// Returns a slice of Move structs instead of full Position objects,
+// making it more memory-efficient for move generation in search.
+//
+// Currently generates moves to empty squares only (no captures).
+func (position Position) GenerateSlidingMoves(pieceMoves PieceMoves) []Move {
+	var moves []Move
+
+	// Generate moves for all sliding piece types
+	slidingPieces := []Piece{Bishop, Rook, Queen}
+
+	for _, pc := range slidingPieces {
+		pieceMoves := position.generateMovesForPiece(pieceMoves, pc)
+		moves = append(moves, pieceMoves...)
+	}
+
+	return moves
+}
+
+// generateMovesForPiece generates pseudo-legal moves for a single piece type.
+// Helper function used by GenerateSlidingMoves.
+func (position Position) generateMovesForPiece(pieceMoves PieceMoves, pc Piece) []Move {
+	var moves []Move
+
+	color := position.filterColor()
+	piecesInColorToMove := color.GetPiece(pc)
+	if *piecesInColorToMove == 0 {
+		return nil
+	}
+
+	// Get all pieces on the board
+	allFlat := position.Bishops | position.Knights | position.Rooks |
+		position.Queens | position.Kings | position.Pawns
+
+	for _, fromBB := range piecesInColorToMove.ToSlice() {
+		directions := pieceMoves[pc][fromBB]
+		for _, direction := range directions {
+			for _, toBB := range direction {
+				if allFlat&toBB == toBB { // piece in the way, stop
+					break
+				}
+				moves = append(moves, Move{
+					From:     fromBB,
+					To:       toBB,
+					Piece:    pc,
+					Captured: Empty,
+				})
+			}
+		}
+	}
+
+	return moves
+}
+
 func (position *Position) GetPiece(piece Piece) *Bitboard {
 	switch piece {
 	case Pawn:

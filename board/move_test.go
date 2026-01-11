@@ -1,0 +1,112 @@
+package board
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGenerateSlidingMoves_Bishop(t *testing.T) {
+	// Bishop at c1, free diagonal
+	position := CreatePositionFormFEN("8/8/8/8/8/8/8/2B5 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Bishop] = SquareMoves{
+		IndexToBitBoard(2): [][]Bitboard{
+			{IndexToBitBoard(11), IndexToBitBoard(20)}, // NE: d2, e3
+			{IndexToBitBoard(9), IndexToBitBoard(16)},  // NW: b2, a3
+		},
+	}
+	pm[Rook] = SquareMoves{}
+	pm[Queen] = SquareMoves{}
+
+	moves := position.GenerateSlidingMoves(pm)
+
+	assert.Len(t, moves, 4)
+
+	// Verify all moves are from c1 (index 2)
+	for _, m := range moves {
+		assert.Equal(t, IndexToBitBoard(2), m.From)
+		assert.Equal(t, Bishop, m.Piece)
+		assert.Equal(t, Empty, m.Captured)
+	}
+}
+
+func TestGenerateSlidingMoves_BlockedByPiece(t *testing.T) {
+	// Rook at a1, pawn at a3 - rook should only reach a2
+	position := CreatePositionFormFEN("8/8/8/8/8/P7/8/R7 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Bishop] = SquareMoves{}
+	pm[Rook] = SquareMoves{
+		IndexToBitBoard(0): [][]Bitboard{
+			{IndexToBitBoard(8), IndexToBitBoard(16), IndexToBitBoard(24)}, // a2, a3, a4
+		},
+	}
+	pm[Queen] = SquareMoves{}
+
+	moves := position.GenerateSlidingMoves(pm)
+
+	assert.Len(t, moves, 1)
+	assert.Equal(t, IndexToBitBoard(0), moves[0].From)
+	assert.Equal(t, IndexToBitBoard(8), moves[0].To) // only a2
+	assert.Equal(t, Rook, moves[0].Piece)
+}
+
+func TestGenerateSlidingMoves_AllSlidingPieces(t *testing.T) {
+	// Position with bishop, rook, and queen
+	position := CreatePositionFormFEN("8/8/8/8/8/8/8/2BRQ3 w - - 0 1")
+
+	pm := make(PieceMoves)
+	pm[Bishop] = SquareMoves{
+		IndexToBitBoard(2): [][]Bitboard{
+			{IndexToBitBoard(11)}, // one move
+		},
+	}
+	pm[Rook] = SquareMoves{
+		IndexToBitBoard(3): [][]Bitboard{
+			{IndexToBitBoard(11)}, // one move
+		},
+	}
+	pm[Queen] = SquareMoves{
+		IndexToBitBoard(4): [][]Bitboard{
+			{IndexToBitBoard(12), IndexToBitBoard(20)}, // two moves
+		},
+	}
+
+	moves := position.GenerateSlidingMoves(pm)
+
+	// 1 bishop + 1 rook + 2 queen = 4 moves
+	assert.Len(t, moves, 4)
+
+	// Count pieces
+	pieceCount := map[Piece]int{}
+	for _, m := range moves {
+		pieceCount[m.Piece]++
+	}
+	assert.Equal(t, 1, pieceCount[Bishop])
+	assert.Equal(t, 1, pieceCount[Rook])
+	assert.Equal(t, 2, pieceCount[Queen])
+}
+
+func TestMove_String(t *testing.T) {
+	m := Move{
+		From:     IndexToBitBoard(2),  // c1
+		To:       IndexToBitBoard(11), // d2
+		Piece:    Bishop,
+		Captured: Empty,
+	}
+
+	assert.Equal(t, "Bishop: c1 -> d2", m.String())
+}
+
+func TestMove_String_Capture(t *testing.T) {
+	m := Move{
+		From:     IndexToBitBoard(2),  // c1
+		To:       IndexToBitBoard(11), // d2
+		Piece:    Bishop,
+		Captured: Pawn,
+	}
+
+	assert.Equal(t, "Bishop: c1 x d2", m.String())
+}
