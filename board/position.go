@@ -740,25 +740,31 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 		// En passant for white (capture on rank 6)
 		if position.EnPassant != 0 {
 			epSquare := position.EnPassant
-			// Left en passant (+7)
-			if fromBB := (epSquare >> 7) & pawns & ^fileHMask; fromBB != 0 {
-				moves = append(moves, Move{
-					From:     fromBB,
-					To:       epSquare,
-					Piece:    Pawn,
-					Captured: Pawn, // en passant always captures a pawn
-					Flags:    FlagEnPassant,
-				})
+			// En passant via >>7: pawn at (epSquare-7) captures on epSquare
+			// Wrap happens when epSquare is on h-file (epSquare-7 wraps to a-file)
+			if epSquare&fileHMask == 0 {
+				if fromBB := (epSquare >> 7) & pawns; fromBB != 0 {
+					moves = append(moves, Move{
+						From:     fromBB,
+						To:       epSquare,
+						Piece:    Pawn,
+						Captured: Pawn,
+						Flags:    FlagEnPassant,
+					})
+				}
 			}
-			// Right en passant (+9)
-			if fromBB := (epSquare >> 9) & pawns & ^fileAMask; fromBB != 0 {
-				moves = append(moves, Move{
-					From:     fromBB,
-					To:       epSquare,
-					Piece:    Pawn,
-					Captured: Pawn,
-					Flags:    FlagEnPassant,
-				})
+			// En passant via >>9: pawn at (epSquare-9) captures on epSquare
+			// Wrap happens when epSquare is on a-file (epSquare-9 wraps to h-file)
+			if epSquare&fileAMask == 0 {
+				if fromBB := (epSquare >> 9) & pawns; fromBB != 0 {
+					moves = append(moves, Move{
+						From:     fromBB,
+						To:       epSquare,
+						Piece:    Pawn,
+						Captured: Pawn,
+						Flags:    FlagEnPassant,
+					})
+				}
 			}
 		}
 	} else {
@@ -816,25 +822,31 @@ func (position Position) appendPawnMoves(moves []Move, ourPieces, enemyPieces, a
 		// En passant for black (capture on rank 3)
 		if position.EnPassant != 0 {
 			epSquare := position.EnPassant
-			// Left en passant (-9)
-			if fromBB := (epSquare << 9) & pawns & ^fileHMask; fromBB != 0 {
-				moves = append(moves, Move{
-					From:     fromBB,
-					To:       epSquare,
-					Piece:    Pawn,
-					Captured: Pawn,
-					Flags:    FlagEnPassant,
-				})
+			// Left en passant: pawn attacks from right (-9 direction)
+			// If epSquare is on h-file, no pawn can attack from the left (would wrap from a-file)
+			if epSquare&fileHMask == 0 {
+				if fromBB := (epSquare << 9) & pawns; fromBB != 0 {
+					moves = append(moves, Move{
+						From:     fromBB,
+						To:       epSquare,
+						Piece:    Pawn,
+						Captured: Pawn,
+						Flags:    FlagEnPassant,
+					})
+				}
 			}
-			// Right en passant (-7)
-			if fromBB := (epSquare << 7) & pawns & ^fileAMask; fromBB != 0 {
-				moves = append(moves, Move{
-					From:     fromBB,
-					To:       epSquare,
-					Piece:    Pawn,
-					Captured: Pawn,
-					Flags:    FlagEnPassant,
-				})
+			// Right en passant: pawn attacks from left (-7 direction)
+			// If epSquare is on a-file, no pawn can attack from the right (would wrap from h-file)
+			if epSquare&fileAMask == 0 {
+				if fromBB := (epSquare << 7) & pawns; fromBB != 0 {
+					moves = append(moves, Move{
+						From:     fromBB,
+						To:       epSquare,
+						Piece:    Pawn,
+						Captured: Pawn,
+						Flags:    FlagEnPassant,
+					})
+				}
 			}
 		}
 	}
