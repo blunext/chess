@@ -40,7 +40,7 @@ func bishopSE(pos int) []board.Bitboard {
 			break
 		}
 		var newPos board.Bitboard
-		newPos.SetBit((7-rank)*8 + file)
+		newPos.SetBit(rank*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -56,7 +56,7 @@ func bishopSW(pos int) []board.Bitboard {
 			break
 		}
 		var newPos board.Bitboard
-		newPos.SetBit((7-rank)*8 + file)
+		newPos.SetBit(rank*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -72,7 +72,7 @@ func bishopNE(pos int) []board.Bitboard {
 			break
 		}
 		var newPos board.Bitboard
-		newPos.SetBit((7-rank)*8 + file)
+		newPos.SetBit(rank*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -88,7 +88,7 @@ func bishopNW(pos int) []board.Bitboard {
 			break
 		}
 		var newPos board.Bitboard
-		newPos.SetBit((7-rank)*8 + file)
+		newPos.SetBit(rank*8 + file)
 		list = append(list, newPos)
 	}
 	return exactSize(list)

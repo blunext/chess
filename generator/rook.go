@@ -32,10 +32,9 @@ func generateRookMoves() board.SquareMoves {
 
 func rookDown(pos int) []board.Bitboard {
 	var list []board.Bitboard
-	rank := rank(pos)
-	for i := 1; i <= rank; i++ {
+	for i := 1; i <= rank(pos); i++ {
 		var newPos board.Bitboard
-		newPos.SetBit(pos + i*8)
+		newPos.SetBit(pos - i*8)
 		list = append(list, newPos)
 	}
 	return exactSize(list)
@@ -43,10 +42,9 @@ func rookDown(pos int) []board.Bitboard {
 
 func rookUp(pos int) []board.Bitboard {
 	var list []board.Bitboard
-	rank := rank(pos)
-	for i := 1; i < 8-rank; i++ {
+	for i := 1; i <= 7-rank(pos); i++ {
 		var newPos board.Bitboard
-		newPos.SetBit(pos - i*8)
+		newPos.SetBit(pos + i*8)
 		list = append(list, newPos)
 	}
 	return exactSize(list)

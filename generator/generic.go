@@ -45,7 +45,7 @@ func generateGenericMoves(steps steps) board.SquareMoves {
 			rank += knight.step[1]
 			if rank >= 0 && rank < 8 && file >= 0 && file < 8 {
 				var newPos board.Bitboard
-				n := (7-rank)*8 + file
+				n := rank*8 + file
 				newPos.SetBit(n)
 				list = append(list, newPos)
 			}

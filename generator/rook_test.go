@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRookDown(t *testing.T) {
+func TestRookUp(t *testing.T) {
 	tests := []struct {
 		pos      int
 		contains []board.Bitboard
@@ -19,8 +19,8 @@ func TestRookDown(t *testing.T) {
 		{63, []board.Bitboard{}, 0},
 	}
 	for _, test := range tests {
-		t.Run("rook down", func(t *testing.T) {
-			positions := rookDown(test.pos)
+		t.Run("rook up", func(t *testing.T) {
+			positions := rookUp(test.pos)
 			assert.Equal(t, test.len, len(positions))
 			for i, expected := range test.contains {
 				assert.Contains(t, positions, expected)
@@ -33,7 +33,7 @@ func TestRookDown(t *testing.T) {
 	}
 }
 
-func TestRookUp(t *testing.T) {
+func TestRookDown(t *testing.T) {
 	tests := []struct {
 		pos      int
 		contains []board.Bitboard
@@ -44,8 +44,8 @@ func TestRookUp(t *testing.T) {
 		{63, []board.Bitboard{0x80000000000000, 0x80000000, 0x80}, 7},
 	}
 	for _, test := range tests {
-		t.Run("rook up", func(t *testing.T) {
-			positions := rookUp(test.pos)
+		t.Run("rook down", func(t *testing.T) {
+			positions := rookDown(test.pos)
 			assert.Equal(t, test.len, len(positions))
 			for i, expected := range test.contains {
 				assert.Contains(t, positions, expected)
