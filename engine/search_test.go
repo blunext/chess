@@ -62,8 +62,8 @@ func TestSearch_InitialPosition(t *testing.T) {
 
 	// Should find some move
 	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
-	// Initial position is equal, score should be around 0
-	assert.Equal(t, 0, result.Score, "Initial position should be equal")
+	// Initial position is equal, score should be around 0 (PST may add small bonus for good moves)
+	assert.InDelta(t, 0, result.Score, 100, "Initial position should be roughly equal")
 }
 
 func TestSearch_CaptureHangingQueen(t *testing.T) {
@@ -75,7 +75,7 @@ func TestSearch_CaptureHangingQueen(t *testing.T) {
 
 	// Should capture the queen with e3xd4
 	assert.Equal(t, "e3d4", result.Move.ToUCI(), "Should capture the hanging queen")
-	assert.Equal(t, QueenValue, result.Score, "Should gain a queen")
+	assert.InDelta(t, QueenValue, result.Score, 100, "Should gain roughly a queen")
 }
 
 func TestSearch_AvoidLosingQueen(t *testing.T) {
@@ -122,5 +122,5 @@ func TestSearch_BlackToMove(t *testing.T) {
 
 	// Should capture the queen with e5xd4
 	assert.Equal(t, "e5d4", result.Move.ToUCI(), "Black should capture the queen")
-	assert.Equal(t, -QueenValue, result.Score, "Score should reflect black winning queen")
+	assert.InDelta(t, -QueenValue, result.Score, 100, "Score should reflect black winning roughly a queen")
 }
