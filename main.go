@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"chess/book"
 	"chess/engine"
 	"chess/magic"
 	"chess/uci"
@@ -13,6 +14,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Load embedded opening book
+	engine.SetOpeningBook(book.LoadEmbedded())
 
 	// Check for command line arguments
 	if len(os.Args) > 1 {

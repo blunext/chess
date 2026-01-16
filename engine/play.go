@@ -95,12 +95,16 @@ func Play() {
 		case "engine", "e":
 			// Let engine play
 			fmt.Println("Engine thinking...")
-			result := Search(pos, pm, DefaultSearchDepth)
+			result := SearchWithBook(pos, pm, DefaultSearchDepth)
 			if result.Move == (board.Move{}) {
 				fmt.Println("Engine has no move!")
 				continue
 			}
-			fmt.Printf("Engine plays: %s (score: %d)\n", result.Move.ToUCI(), result.Score)
+			if result.FromBook {
+				fmt.Printf("Engine plays: %s (book)\n", result.Move.ToUCI())
+			} else {
+				fmt.Printf("Engine plays: %s (score: %d)\n", result.Move.ToUCI(), result.Score)
+			}
 			undo := pos.MakeMove(result.Move)
 			history = append(history, historyEntry{result.Move, undo})
 			continue
@@ -125,11 +129,15 @@ func Play() {
 			continue // Will be handled at top of loop
 		}
 
-		result := Search(pos, pm, DefaultSearchDepth)
+		result := SearchWithBook(pos, pm, DefaultSearchDepth)
 		if result.Move == (board.Move{}) {
 			continue
 		}
-		fmt.Printf("Engine plays: %s (score: %d)\n", result.Move.ToUCI(), result.Score)
+		if result.FromBook {
+			fmt.Printf("Engine plays: %s (book)\n", result.Move.ToUCI())
+		} else {
+			fmt.Printf("Engine plays: %s (score: %d)\n", result.Move.ToUCI(), result.Score)
+		}
 		undo = pos.MakeMove(result.Move)
 		history = append(history, historyEntry{result.Move, undo})
 		fmt.Println()

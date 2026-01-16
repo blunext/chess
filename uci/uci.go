@@ -159,8 +159,8 @@ func (uci *UCI) cmdGo(args []string) {
 		}
 	}
 
-	// Run search
-	result := engine.Search(uci.position, uci.pieceMoves, depth)
+	// Run search (with opening book if available)
+	result := engine.SearchWithBook(uci.position, uci.pieceMoves, depth)
 
 	// Output best move
 	if result.Move != (board.Move{}) {

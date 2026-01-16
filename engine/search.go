@@ -1,9 +1,12 @@
 package engine
 
 import (
+	"math/rand"
 	"sort"
+	"time"
 
 	"chess/board"
+	"chess/book"
 )
 
 const (
@@ -47,11 +50,43 @@ func sortMoves(moves []board.Move) {
 	})
 }
 
+// OpeningBook is the global opening book (nil if not loaded)
+var OpeningBook *book.Book
+
+// bookRng is used for random book move selection
+var bookRng = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// SetOpeningBook sets the opening book to use.
+func SetOpeningBook(b *book.Book) {
+	OpeningBook = b
+}
+
 // SearchResult contains the best move and its evaluation.
 type SearchResult struct {
-	Move  board.Move
-	Score int
-	Nodes int64 // nodes searched (for debugging)
+	Move     board.Move
+	Score    int
+	Nodes    int64 // nodes searched (for debugging)
+	FromBook bool  // true if move came from opening book
+}
+
+// SearchWithBook probes the opening book first, then falls back to search.
+func SearchWithBook(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchResult {
+	// Try opening book first
+	if OpeningBook != nil {
+		polyHash := book.PolyglotHash(pos)
+		if bookMove, ok := OpeningBook.ProbeRandom(polyHash, bookRng); ok {
+			// Find matching legal move to get full move info (piece type, etc.)
+			legalMoves := pos.GenerateLegalMoves(pieceMoves)
+			for _, m := range legalMoves {
+				if m.From == bookMove.From && m.To == bookMove.To && m.Promotion == bookMove.Promotion {
+					return SearchResult{Move: m, FromBook: true}
+				}
+			}
+		}
+	}
+
+	// Fall back to normal search
+	return Search(pos, pieceMoves, depth)
 }
 
 // Search finds the best move using alpha-beta pruning.

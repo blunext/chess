@@ -94,7 +94,7 @@
 - [x] Alpha-beta pruning
 - [x] Move ordering (captures first → MVV-LVA)
 - [x] Zobrist hashing
-- [ ] Opening book (Polyglot format)
+- [x] Opening book (Polyglot format)
 - [ ] Iterative deepening
 - [ ] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [ ] Transposition table
