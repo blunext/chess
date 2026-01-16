@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"chess/board"
 	"chess/generator"
@@ -18,6 +19,15 @@ func Play() {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
 	pm := generator.NewGenerator()
 	reader := bufio.NewReader(os.Stdin)
+
+	// Initialize logger
+	l, err := NewLogger("game.log")
+	if err != nil {
+		fmt.Printf("Warning: Could not create logger: %v\n", err)
+	} else {
+		defer l.Close()
+		fmt.Println("Logging moves to game.log")
+	}
 
 	fmt.Println("=== Chess Engine Interactive Mode ===")
 	fmt.Println("Enter moves in UCI format (e.g., e2e4, e7e8q for promotion)")
@@ -95,16 +105,49 @@ func Play() {
 		case "engine", "e":
 			// Let engine play
 			fmt.Println("Engine thinking...")
+
+			start := time.Now()
 			result := SearchWithBook(pos, pm, DefaultSearchDepth)
+			duration := time.Since(start)
+
 			if result.Move == (board.Move{}) {
 				fmt.Println("Engine has no move!")
 				continue
 			}
+
+			scoreStr := fmt.Sprintf("%d cp", result.Score)
+			// Simple mate detection in score string
+			if result.Score > 90000 {
+				scoreStr = "Mate in +"
+			} else if result.Score < -90000 {
+				scoreStr = "Mate in -"
+			}
+
 			if result.FromBook {
 				fmt.Printf("Engine plays: %s (book)\n", result.Move.ToUCI())
 			} else {
 				fmt.Printf("Engine plays: %s (score: %d)\n", result.Move.ToUCI(), result.Score)
 			}
+
+			// Log the move
+			if l != nil {
+				l.Log(LogInfo{
+					Timestamp: time.Now(),
+					FEN:       pos.ToFEN(),
+					Move:      result.Move.ToUCI(),
+					Source: func() string {
+						if result.FromBook {
+							return "Book"
+						}
+						return "Search"
+					}(),
+					Score:    scoreStr,
+					Depth:    DefaultSearchDepth,
+					Nodes:    result.Nodes,
+					Duration: duration,
+				})
+			}
+
 			undo := pos.MakeMove(result.Move)
 			history = append(history, historyEntry{result.Move, undo})
 			continue
@@ -129,15 +172,46 @@ func Play() {
 			continue // Will be handled at top of loop
 		}
 
+		start := time.Now()
 		result := SearchWithBook(pos, pm, DefaultSearchDepth)
+		duration := time.Since(start)
+
 		if result.Move == (board.Move{}) {
 			continue
 		}
+
+		scoreStr := fmt.Sprintf("%d cp", result.Score)
+		if result.Score > 90000 {
+			scoreStr = "Mate (+)"
+		} else if result.Score < -90000 {
+			scoreStr = "Mate (-)"
+		}
+
 		if result.FromBook {
 			fmt.Printf("Engine plays: %s (book)\n", result.Move.ToUCI())
 		} else {
 			fmt.Printf("Engine plays: %s (score: %d)\n", result.Move.ToUCI(), result.Score)
 		}
+
+		// Log the move
+		if l != nil {
+			l.Log(LogInfo{
+				Timestamp: time.Now(),
+				FEN:       pos.ToFEN(),
+				Move:      result.Move.ToUCI(),
+				Source: func() string {
+					if result.FromBook {
+						return "Book"
+					}
+					return "Search"
+				}(),
+				Score:    scoreStr,
+				Depth:    DefaultSearchDepth,
+				Nodes:    result.Nodes,
+				Duration: duration,
+			})
+		}
+
 		undo = pos.MakeMove(result.Move)
 		history = append(history, historyEntry{result.Move, undo})
 		fmt.Println()
