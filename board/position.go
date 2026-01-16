@@ -69,6 +69,7 @@ type Position struct {
 	CastleSide                                    uint8
 	EnPassant                                     Bitboard
 	HalfMoveClock                                 uint8
+	Hash                                          uint64 // Zobrist hash
 }
 
 type coloredPiece struct {

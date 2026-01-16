@@ -42,7 +42,8 @@ func CreatePositionFormFEN(fen string) Position {
 	halfMoveClock, _ := strconv.Atoi(fields[4])
 	position.HalfMoveClock = uint8(halfMoveClock)
 
-	// todo: do we need Fullmove counter?
+	// Compute Zobrist hash
+	position.Hash = position.ComputeHash()
 
 	return position
 }

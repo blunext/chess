@@ -1,8 +1,9 @@
 package board
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPosition_filterColor(t *testing.T) {
@@ -24,6 +25,9 @@ func TestPosition_filterColor(t *testing.T) {
 				board.White = 0
 			}
 			expected := CreatePositionFormFEN(tc.expected)
+			// Clear hash for comparison since filterColor doesn't update hash
+			board.Hash = 0
+			expected.Hash = 0
 			assert.Equalf(t, expected, board, "filterColor()")
 		})
 	}

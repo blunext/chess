@@ -7,6 +7,7 @@ type UndoInfo struct {
 	CastleSide    uint8    // castling rights before the move
 	EnPassant     Bitboard // en passant square before the move
 	HalfMoveClock uint8    // half-move clock before the move
+	Hash          uint64   // Zobrist hash before the move
 }
 
 // MakeMove executes a move on the position and returns undo information.
@@ -19,6 +20,7 @@ func (pos *Position) MakeMove(m Move) UndoInfo {
 		CastleSide:    pos.CastleSide,
 		EnPassant:     pos.EnPassant,
 		HalfMoveClock: pos.HalfMoveClock,
+		Hash:          pos.Hash,
 	}
 
 	// Get color bitboards
@@ -143,6 +145,10 @@ func (pos *Position) MakeMove(m Move) UndoInfo {
 	// Switch side to move
 	pos.WhiteMove = !pos.WhiteMove
 
+	// Recompute Zobrist hash (simple approach - full recompute)
+	// TODO: optimize with incremental XOR updates
+	pos.Hash = pos.ComputeHash()
+
 	return undo
 }
 
@@ -229,4 +235,5 @@ func (pos *Position) UnmakeMove(m Move, undo UndoInfo) {
 	pos.CastleSide = undo.CastleSide
 	pos.EnPassant = undo.EnPassant
 	pos.HalfMoveClock = undo.HalfMoveClock
+	pos.Hash = undo.Hash
 }

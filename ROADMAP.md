@@ -93,9 +93,10 @@
 - [x] Minimax
 - [x] Alpha-beta pruning
 - [x] Move ordering (captures first → MVV-LVA)
+- [x] Zobrist hashing
+- [ ] Opening book (Polyglot format)
 - [ ] Iterative deepening
 - [ ] Quiescence search (kontynuacja przeszukiwania dla bić)
-- [ ] Zobrist hashing (wymagane dla TT)
 - [ ] Transposition table
 
 ## Iteracja 13: Time Management
@@ -166,7 +167,6 @@
 
 # Przyszłość (poza obecnym scopem)
 
-- [ ] Opening book
 - [ ] Syzygy tablebases (końcówki)
 - [ ] NNUE (ewaluacja siecią neuronową)
 - [ ] Pondering (myślenie w czasie przeciwnika)
