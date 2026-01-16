@@ -903,7 +903,7 @@ func (position Position) pieceAt(sq Bitboard) Piece {
 func (position *Position) Pretty() string {
 	var s string
 
-	// Unicode chess pieces: White (uppercase) and Black (lowercase)
+	// Unicode chess pieces
 	pieceSymbols := map[Piece]map[Color]string{
 		Pawn:   {ColorWhite: "♙", ColorBlack: "♟"},
 		Knight: {ColorWhite: "♘", ColorBlack: "♞"},
@@ -913,11 +913,14 @@ func (position *Position) Pretty() string {
 		King:   {ColorWhite: "♔", ColorBlack: "♚"},
 	}
 
+	s += "\n"
+	s += "    ┌───┬───┬───┬───┬───┬───┬───┬───┐\n"
+
 	for r := Rank8; r >= Rank1; r-- {
-		s += fmt.Sprintf("%d  ", r+1)
+		s += fmt.Sprintf("  %d │", r+1)
 		for f := FileA; f <= FileH; f++ {
 			idx := squareIndex(f, r)
-			symbol := "·"
+			symbol := " "
 
 			// Check each piece type and color
 			for pieceType := Pawn; pieceType <= King; pieceType++ {
@@ -932,11 +935,15 @@ func (position *Position) Pretty() string {
 				}
 			}
 
-			s += symbol + " "
+			s += " " + symbol + " │"
 		}
 		s += "\n"
+		if r > Rank1 {
+			s += "    ├───┼───┼───┼───┼───┼───┼───┼───┤\n"
+		}
 	}
-	s += "   a b c d e f g h\n"
+	s += "    └───┴───┴───┴───┴───┴───┴───┴───┘\n"
+	s += "      a   b   c   d   e   f   g   h\n"
 
 	return s
 }

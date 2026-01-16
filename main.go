@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"chess/engine"
 	"chess/magic"
 	"chess/uci"
@@ -11,6 +13,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	engine.Run()
+
+	// Check for command line arguments
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "play":
+			engine.Play()
+			return
+		case "uci":
+			uci.Start()
+			return
+		}
+	}
+
+	// Default: UCI mode
 	uci.Start()
 }
