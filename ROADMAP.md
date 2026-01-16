@@ -91,14 +91,13 @@
 
 ## Iteracja 12: Search
 - [x] Minimax
-- [ ] Alpha-beta pruning
+- [x] Alpha-beta pruning
+- [x] Move ordering (captures first → MVV-LVA)
 - [ ] Iterative deepening
-- [ ] Move ordering (bicia, killer moves)
-- [ ] Quiescence search
+- [ ] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [ ] Zobrist hashing (wymagane dla TT)
 - [ ] Transposition table
 
-## Iteracja 13: Time Management
 ## Iteracja 13: Time Management
 - [ ] Podstawowy time control w UCI (parsowanie wtime/btime)
 - [ ] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
@@ -131,10 +130,43 @@
 
 ---
 
+# Parallelizacja (Iteracja 15)
+
+> **Cel:** Wykorzystanie wielu rdzeni CPU dla większej mocy obliczeniowej
+
+## Wymagane wcześniej (blokery)
+- [ ] Transposition Table (ze współdzielonym dostępem)
+- [ ] Iterative Deepening (dla Lazy SMP)
+
+## Etapy implementacji
+
+### Etap 1: Root-level parallelism (🟢 Łatwy)
+- [ ] Każdy ruch z root position w osobnej goroutynie
+- [ ] Kopiowanie `Position` dla każdej goroutyny
+- [ ] Zbieranie wyników przez channel
+- [ ] ~10-20% speedup
+
+### Etap 2: Shared Transposition Table (🟡 Średni)
+- [ ] `sync.RWMutex` dla TT lub lock-free z atomic
+- [ ] Wątki współdzielą wyniki przeszukiwania
+- [ ] Unikanie duplikacji pracy
+
+### Etap 3: Lazy SMP (🟡 Średni)
+- [ ] N wątków przeszukuje to samo drzewo równolegle
+- [ ] Różne parametry (depth +/- 1) dla diversity
+- [ ] Współdzielona TT synchronizuje wyniki
+- [ ] ~50-70% speedup przy 4 wątkach
+
+### Etap 4: YBWC / Young Brothers Wait Concept (🔴 Trudny)
+- [ ] Pierwszy ruch sekwencyjnie, reszta równolegle
+- [ ] Lepsza efektywność pruning w parallel
+- [ ] Wymaga bardziej złożonej synchronizacji
+
+---
+
 # Przyszłość (poza obecnym scopem)
 
 - [ ] Opening book
 - [ ] Syzygy tablebases (końcówki)
 - [ ] NNUE (ewaluacja siecią neuronową)
-- [ ] Multi-threaded search (Lazy SMP)
 - [ ] Pondering (myślenie w czasie przeciwnika)

@@ -8,6 +8,69 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// === Move Ordering Tests ===
+
+func TestMoveScore_CapturesRankedByMVVLVA(t *testing.T) {
+	// PxQ (pawn captures queen) should score higher than QxP (queen captures pawn)
+	pawnCapturesQueen := board.Move{
+		Piece:    board.Pawn,
+		Captured: board.Queen,
+	}
+	queenCapturesPawn := board.Move{
+		Piece:    board.Queen,
+		Captured: board.Pawn,
+	}
+	knightCapturesQueen := board.Move{
+		Piece:    board.Knight,
+		Captured: board.Queen,
+	}
+
+	pxqScore := moveScore(pawnCapturesQueen)
+	qxpScore := moveScore(queenCapturesPawn)
+	nxqScore := moveScore(knightCapturesQueen)
+
+	// PxQ > NxQ > QxP (MVV-LVA: best captures first)
+	assert.Greater(t, pxqScore, nxqScore, "PxQ should score higher than NxQ")
+	assert.Greater(t, nxqScore, qxpScore, "NxQ should score higher than QxP")
+	assert.Greater(t, pxqScore, 10000, "Captures should have high base score")
+}
+
+func TestMoveScore_PromotionsHighPriority(t *testing.T) {
+	promotion := board.Move{
+		Piece:     board.Pawn,
+		Promotion: board.Queen,
+	}
+	quietMove := board.Move{
+		Piece: board.Knight,
+	}
+
+	promoScore := moveScore(promotion)
+	quietScore := moveScore(quietMove)
+
+	assert.Greater(t, promoScore, quietScore, "Promotion should score higher than quiet move")
+	assert.Greater(t, promoScore, 9000, "Promotion should have high score")
+	assert.Equal(t, 0, quietScore, "Quiet move should have zero score")
+}
+
+func TestSortMoves_CapturesFirst(t *testing.T) {
+	moves := []board.Move{
+		{Piece: board.Knight, Captured: board.Empty},                       // quiet
+		{Piece: board.Pawn, Captured: board.Queen},                         // PxQ (best)
+		{Piece: board.Queen, Captured: board.Pawn},                         // QxP (weak capture)
+		{Piece: board.Pawn, Promotion: board.Queen, Captured: board.Empty}, // promotion
+	}
+
+	sortMoves(moves)
+
+	// After sorting: PxQ, QxP, promotion, quiet
+	assert.Equal(t, board.Queen, moves[0].Captured, "First should be PxQ (best capture)")
+	assert.Equal(t, board.Pawn, moves[1].Captured, "Second should be QxP (weaker capture)")
+	assert.Equal(t, board.Queen, moves[2].Promotion, "Third should be promotion")
+	assert.Equal(t, board.Empty, moves[3].Captured, "Last should be quiet move")
+}
+
+// === Search Tests ===
+
 func createTestPieceMoves() board.PieceMoves {
 	pm := make(board.PieceMoves)
 
