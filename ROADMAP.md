@@ -99,9 +99,11 @@
 - [ ] Transposition table
 
 ## Iteracja 13: Time Management
-- [ ] Podstawowy time control (wtime/btime/winc/binc)
-- [ ] Alokacja czasu na ruch
-- [ ] Przerwanie search gdy czas się kończy
+## Iteracja 13: Time Management
+- [ ] Podstawowy time control w UCI (parsowanie wtime/btime)
+- [ ] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
+- [ ] Przerwanie search gdy czas się kończy (timeout check)
+- [ ] Alokacja czasu (prosta heurystyka: czas/40 lub czas/20)
 
 ## Iteracja 14: UCI Options
 - [ ] Obsługa `setoption name X value Y`
