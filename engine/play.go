@@ -10,6 +10,9 @@ import (
 	"chess/generator"
 )
 
+// DefaultSearchDepth is the default depth for engine search
+const DefaultSearchDepth = 5
+
 // Play starts an interactive game in the terminal
 func Play() {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
@@ -92,7 +95,7 @@ func Play() {
 		case "engine", "e":
 			// Let engine play
 			fmt.Println("Engine thinking...")
-			result := Search(pos, pm, 4)
+			result := Search(pos, pm, DefaultSearchDepth)
 			if result.Move == (board.Move{}) {
 				fmt.Println("Engine has no move!")
 				continue
@@ -122,7 +125,7 @@ func Play() {
 			continue // Will be handled at top of loop
 		}
 
-		result := Search(pos, pm, 4)
+		result := Search(pos, pm, DefaultSearchDepth)
 		if result.Move == (board.Move{}) {
 			continue
 		}
