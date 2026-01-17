@@ -65,11 +65,12 @@ func (l *Logger) Close() {
 func (l *Logger) writer() {
 	for info := range l.queue {
 		// Format: [YYYY-MM-DD HH:MM:SS] Move: ... | Score: ... | ...
-		line := fmt.Sprintf("[%s] Move: %-5s | Score: %-8s | Depth: %d | Source: %-6s | Nodes: %-8d | Time: %-6s | FEN: %s\n",
-			info.Timestamp.Format("2006-01-02 15:04:05"),
+		//line := fmt.Sprintf("[%s] Move: %-5s | Score: %-8s | Depth: %d | Source: %-6s | Nodes: %-8d | Time: %-6s | FEN: %s\n",
+		line := fmt.Sprintf("[%s] Move: %-5s | Score: %-8s | Source: %-6s | Nodes: %-8d | Time: %-6s | FEN: %s\n",
+			info.Timestamp.Format("15:04:05"),
 			info.Move,
 			info.Score,
-			info.Depth,
+			//info.Depth,
 			info.Source,
 			info.Nodes,
 			info.Duration.Round(time.Millisecond),
