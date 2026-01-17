@@ -157,7 +157,7 @@ func (uci *UCI) cmdPosition(args []string) {
 // go infinite
 // go movetime 1000
 func (uci *UCI) cmdGo(args []string) {
-	depth := 4 // default depth
+	depth := engine.DefaultSearchDepth // default depth
 
 	// Parse arguments
 	for i := 0; i < len(args); i++ {

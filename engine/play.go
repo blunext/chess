@@ -12,7 +12,7 @@ import (
 )
 
 // DefaultSearchDepth is the default depth for engine search
-const DefaultSearchDepth = 8
+const DefaultSearchDepth = 7
 
 // Play starts an interactive game in the terminal
 func Play() {
