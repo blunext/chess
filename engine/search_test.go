@@ -187,3 +187,39 @@ func TestSearch_BlackToMove(t *testing.T) {
 	assert.Equal(t, "e5d4", result.Move.ToUCI(), "Black should capture the queen")
 	assert.InDelta(t, -QueenValue, result.Score, 100, "Score should reflect black winning roughly a queen")
 }
+
+// === Quiescence Tests ===
+
+func TestQuiescence_SeesCaptureBeyondHorizon(t *testing.T) {
+	// Position where white can push pawn, then black captures it
+	// Without quiescence: engine might think pawn is safe at depth 1
+	// With quiescence: engine sees the recapture
+	//
+	// White pawn on e4, black knight on f6 attacks e5
+	// If white plays e4-e5, black plays Nxe5
+	// Quiescence should see this exchange
+	pos := board.CreatePositionFormFEN("rnbqkb1r/pppppppp/5n2/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1")
+	pm := createTestPieceMoves()
+
+	// At depth 1, without quiescence, engine might think e5 is fine
+	// With quiescence, it sees Nxe5 and evaluates correctly
+	result := Search(pos, pm, 1)
+
+	// e4-e5 loses a pawn, engine should prefer other moves
+	assert.NotEqual(t, "e4e5", result.Move.ToUCI(), "Should not push pawn to be captured")
+}
+
+func TestQuiescence_SeesRecapture(t *testing.T) {
+	// Position: white knight on d5, black pawn on e6 can capture
+	// If black plays exd5, white has no immediate recapture
+	// This tests that quiescence evaluates capture sequences correctly
+	pos := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/4p3/3N4/8/8/PPPPPPPP/R1BQKBNR b KQkq - 0 1")
+	pm := createTestPieceMoves()
+
+	result := Search(pos, pm, 1)
+
+	// Black should capture the knight - it's free material
+	assert.Equal(t, "e6d5", result.Move.ToUCI(), "Black should capture the knight")
+	// Score should be negative (favorable to black)
+	assert.Less(t, result.Score, 0, "Score should be negative (black winning)")
+}

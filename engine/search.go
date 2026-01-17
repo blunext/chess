@@ -154,7 +154,8 @@ func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchRe
 // Returns (score, nodesSearched)
 func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alpha, beta int) (int, int64) {
 	if depth == 0 {
-		return Evaluate(*pos), 1
+		// At depth 0, continue with quiescence search to avoid horizon effect
+		return quiescence(pos, pieceMoves, alpha, beta)
 	}
 
 	moves := pos.GenerateLegalMoves(pieceMoves)
@@ -215,4 +216,82 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		}
 		return bestScore, nodes
 	}
+}
+
+// quiescence continues search only for captures to avoid horizon effect.
+// This prevents the engine from "hiding" losses just beyond the search depth.
+// Returns (score, nodesSearched)
+func quiescence(pos *board.Position, pieceMoves board.PieceMoves, alpha, beta int) (int, int64) {
+	// Stand pat: the player can choose not to capture
+	standPat := Evaluate(*pos)
+	var nodes int64 = 1
+
+	if pos.WhiteMove {
+		// Maximizing player
+		if standPat >= beta {
+			return beta, nodes // Beta cutoff
+		}
+		if standPat > alpha {
+			alpha = standPat
+		}
+
+		// Generate and filter captures only
+		moves := pos.GenerateLegalMoves(pieceMoves)
+		captures := filterCaptures(moves)
+		sortMoves(captures)
+
+		for _, move := range captures {
+			undo := pos.MakeMove(move)
+			score, n := quiescence(pos, pieceMoves, alpha, beta)
+			nodes += n
+			pos.UnmakeMove(move, undo)
+
+			if score > alpha {
+				alpha = score
+			}
+			if alpha >= beta {
+				break // Beta cutoff
+			}
+		}
+		return alpha, nodes
+	} else {
+		// Minimizing player
+		if standPat <= alpha {
+			return alpha, nodes // Alpha cutoff
+		}
+		if standPat < beta {
+			beta = standPat
+		}
+
+		// Generate and filter captures only
+		moves := pos.GenerateLegalMoves(pieceMoves)
+		captures := filterCaptures(moves)
+		sortMoves(captures)
+
+		for _, move := range captures {
+			undo := pos.MakeMove(move)
+			score, n := quiescence(pos, pieceMoves, alpha, beta)
+			nodes += n
+			pos.UnmakeMove(move, undo)
+
+			if score < beta {
+				beta = score
+			}
+			if alpha >= beta {
+				break // Alpha cutoff
+			}
+		}
+		return beta, nodes
+	}
+}
+
+// filterCaptures returns only capture moves from a list of moves.
+func filterCaptures(moves []board.Move) []board.Move {
+	captures := make([]board.Move, 0, len(moves)/4)
+	for _, m := range moves {
+		if m.Captured != board.Empty {
+			captures = append(captures, m)
+		}
+	}
+	return captures
 }
