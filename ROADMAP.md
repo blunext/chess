@@ -95,15 +95,21 @@
 - [x] Move ordering (captures first → MVV-LVA)
 - [x] Zobrist hashing
 - [x] Opening book (Polyglot format)
+- [x] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [ ] Iterative deepening
-- [ ] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [ ] Transposition table
 
-## Iteracja 13: Time Management
-- [ ] Podstawowy time control w UCI (parsowanie wtime/btime)
+## Iteracja 13: Time Management (podstawowy)
 - [ ] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
-- [ ] Przerwanie search gdy czas się kończy (timeout check)
-- [ ] Alokacja czasu (prosta heurystyka: czas/40 lub czas/20)
+- [ ] Parsowanie wtime/btime/winc/binc w UCI
+- [ ] Przerwanie search gdy czas się kończy (timeout check co N węzłów)
+- [ ] Alokacja czasu (prosta heurystyka: czas/30)
+
+## Iteracja 13b: Time Management (zaawansowany)
+- [ ] Soft/Hard time limit (miękki 2s, twardy 10s dla trudnych pozycji)
+- [ ] Score stability (krótszy czas gdy wynik stabilny przez 3 głębokości)
+- [ ] Position complexity (więcej czasu na skomplikowane pozycje)
+- [ ] Pondering (myślenie w czasie przeciwnika)
 
 ## Iteracja 14: UCI Options
 - [ ] Obsługa `setoption name X value Y`
@@ -169,4 +175,3 @@
 
 - [ ] Syzygy tablebases (końcówki)
 - [ ] NNUE (ewaluacja siecią neuronową)
-- [ ] Pondering (myślenie w czasie przeciwnika)
