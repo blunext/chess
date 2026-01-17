@@ -77,6 +77,8 @@ func (uci *UCI) handleCommand(line string) bool {
 		uci.cmdUCI()
 	case "isready":
 		uci.cmdIsReady()
+	case "setoption":
+		uci.cmdSetOption(parts[1:])
 	case "ucinewgame":
 		uci.cmdNewGame()
 	case "position":
@@ -97,7 +99,8 @@ func (uci *UCI) handleCommand(line string) bool {
 func (uci *UCI) cmdUCI() {
 	fmt.Printf("id name %s\n", engineName)
 	fmt.Printf("id author %s\n", engineAuthor)
-	// Options would go here
+	// Options
+	fmt.Printf("option name Hash type spin default %d min 1 max 4096\n", engine.DefaultHashMB)
 	fmt.Println("uciok")
 }
 
@@ -106,9 +109,38 @@ func (uci *UCI) cmdIsReady() {
 	fmt.Println("readyok")
 }
 
+// cmdSetOption handles "setoption name X value Y"
+func (uci *UCI) cmdSetOption(args []string) {
+	// setoption name Hash value 128
+	if len(args) < 4 {
+		return
+	}
+
+	// Find "name" and "value" positions
+	var name, value string
+	for i := 0; i < len(args); i++ {
+		if args[i] == "name" && i+1 < len(args) {
+			name = args[i+1]
+		} else if args[i] == "value" && i+1 < len(args) {
+			value = args[i+1]
+		}
+	}
+
+	switch strings.ToLower(name) {
+	case "hash":
+		if sizeMB, err := strconv.Atoi(value); err == nil && sizeMB > 0 {
+			engine.InitTT(sizeMB)
+		}
+	}
+}
+
 // cmdNewGame handles the "ucinewgame" command
 func (uci *UCI) cmdNewGame() {
 	uci.position = board.CreatePositionFormFEN(board.InitialPosition)
+	// Clear transposition table for new game
+	if engine.TT != nil {
+		engine.TT.Clear()
+	}
 }
 
 // cmdPosition handles the "position" command

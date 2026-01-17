@@ -97,7 +97,7 @@
 - [x] Opening book (Polyglot format)
 - [x] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [x] Iterative deepening
-- [ ] Transposition table
+- [x] Transposition table
 
 ## ✅ Iteracja 13: Time Management (podstawowy)
 - [x] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
@@ -135,9 +135,9 @@
 - [ ] Obsługa `ponderhit` (przeciwnik zagrał przewidziany ruch)
 - [ ] Wymaga: predykcji najbardziej prawdopodobnej odpowiedzi
 
-## Iteracja 14: UCI Options
-- [ ] Obsługa `setoption name X value Y`
-- [ ] Opcja `Hash` (rozmiar transposition table w MB)
+## ✅ Iteracja 14: UCI Options
+- [x] Obsługa `setoption name X value Y`
+- [x] Opcja `Hash` (rozmiar transposition table w MB)
 - [ ] Opcja `Threads` (liczba wątków - przygotowanie pod multi-threading)
 - [ ] Opcja `UCI_ShowWDL` (pokazywanie Win/Draw/Loss)
 - [ ] Ponder (`go ponder`, `ponderhit`, `stop`)

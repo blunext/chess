@@ -179,8 +179,53 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		return quiescence(pos, pieceMoves, alpha, beta, ctx)
 	}
 
+	alphaOrig := alpha
+	hash := pos.Hash
+
+	// Probe transposition table
+	var ttMove board.Move
+	if TT != nil {
+		if entry, found := TT.Probe(hash); found {
+			ttMove = entry.BestMove
+			if int(entry.Depth) >= depth {
+				score := int(entry.Score)
+				switch entry.Flag {
+				case TTFlagExact:
+					return score
+				case TTFlagLower:
+					if score > alpha {
+						alpha = score
+					}
+				case TTFlagUpper:
+					if score < beta {
+						beta = score
+					}
+				}
+				if alpha >= beta {
+					return score
+				}
+			}
+		}
+	}
+
 	moves := pos.GenerateLegalMoves(pieceMoves)
-	sortMoves(moves)
+
+	// Put TT move first if available
+	if ttMove != (board.Move{}) {
+		for i, m := range moves {
+			if m.From == ttMove.From && m.To == ttMove.To && m.Promotion == ttMove.Promotion {
+				// Swap to front
+				moves[0], moves[i] = moves[i], moves[0]
+				break
+			}
+		}
+		// Sort remaining moves (skip first which is TT move)
+		if len(moves) > 1 {
+			sortMoves(moves[1:])
+		}
+	} else {
+		sortMoves(moves)
+	}
 
 	if len(moves) == 0 {
 		if pos.IsInCheck() {
@@ -192,8 +237,11 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		return 0 // Stalemate
 	}
 
+	var bestMove board.Move
+	var bestScore int
+
 	if pos.WhiteMove {
-		bestScore := -infinity
+		bestScore = -infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
 			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, ctx)
@@ -205,6 +253,7 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 
 			if score > bestScore {
 				bestScore = score
+				bestMove = move
 			}
 			if score > alpha {
 				alpha = score
@@ -213,9 +262,8 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 				break
 			}
 		}
-		return bestScore
 	} else {
-		bestScore := infinity
+		bestScore = infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
 			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, ctx)
@@ -227,6 +275,7 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 
 			if score < bestScore {
 				bestScore = score
+				bestMove = move
 			}
 			if score < beta {
 				beta = score
@@ -235,8 +284,22 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 				break
 			}
 		}
-		return bestScore
 	}
+
+	// Store in transposition table
+	if TT != nil && !ctx.stopped.Load() {
+		var flag TTFlag
+		if bestScore <= alphaOrig {
+			flag = TTFlagUpper
+		} else if bestScore >= beta {
+			flag = TTFlagLower
+		} else {
+			flag = TTFlagExact
+		}
+		TT.Store(hash, int16(bestScore), int8(depth), flag, bestMove)
+	}
+
+	return bestScore
 }
 
 // quiescence continues search only for captures to avoid horizon effect.
