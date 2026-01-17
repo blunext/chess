@@ -148,11 +148,16 @@
 # Dalsze optymalizacje (po podstawowej wersji)
 
 ## Search pruning
-- [ ] Null move pruning
+- [x] Null move pruning
 - [ ] Late Move Reductions (LMR)
 - [ ] Aspiration windows
 - [ ] Principal Variation Search (PVS)
 - [ ] Futility pruning
+
+## Regression Testing (ochrona przed błędami)
+- [ ] Perft test (weryfikacja poprawności generowania ruchów)
+- [ ] Tactical test suite (zbiór pozycji taktycznych: mat, widelec, związanie)
+- [ ] Self-play tournament (porównanie wersji silnika, 100+ partii)
 
 ## Move ordering zaawansowane
 - [ ] History heuristic

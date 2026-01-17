@@ -15,6 +15,10 @@ const (
 	nullMoveReduction = 2 // Depth reduction for null move pruning
 )
 
+// UseNullMovePruning controls whether null move pruning is enabled.
+// Set to false to disable NMP for testing or debugging.
+var UseNullMovePruning = true
+
 // isEndgame returns true if position has only kings and pawns (zugzwang risk)
 // In such positions, null move pruning can be dangerous
 func isEndgame(pos *board.Position) bool {
@@ -220,7 +224,7 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 	// Idea: if we can skip our move and still beat beta, the position is so good
 	// that we can prune. Skip if: in check, depth too shallow, endgame (zugzwang), or just did null move
 	inCheck := pos.IsInCheck()
-	if nullMoveAllowed && depth >= 3 && !inCheck && !isEndgame(pos) {
+	if UseNullMovePruning && nullMoveAllowed && depth >= 3 && !inCheck && !isEndgame(pos) {
 		// Save state for null move
 		oldHash := pos.Hash
 		oldEnPassant := pos.EnPassant
