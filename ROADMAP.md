@@ -106,16 +106,39 @@
 - [x] Alokacja czasu (prosta heurystyka: czas/30)
 
 ## Iteracja 13b: Time Management (zaawansowany)
-- [ ] Soft/Hard time limit (miękki 2s, twardy 10s dla trudnych pozycji)
-- [ ] Score stability (krótszy czas gdy wynik stabilny przez 3 głębokości)
-- [ ] Position complexity (więcej czasu na skomplikowane pozycje)
-- [ ] Pondering (myślenie w czasie przeciwnika)
+
+> **Priorytety:** 🔴 Krytyczne → 🟡 Ważne → 🟢 Nice-to-have
+
+### ✅ Emergency Buffer
+- [x] Odejmij 200ms od dostępnego czasu jako rezerwę na lag sieciowy
+- Problem: Komunikacja z serwerem ma opóźnienie, silnik może przekroczyć czas
+- Rozwiązanie: `allocated = max(calculated - 200ms, 50ms)`
+
+### 🟡 Move Overhead (UCI Option)
+- [ ] Opcja `Move Overhead` (margines czasowy konfigurowalny przez użytkownika)
+- Lichess/Arena pozwalają ustawić (zwykle 100-300ms)
+- Format: `option name Move Overhead type spin default 100 min 0 max 1000`
+
+### 🟡 Soft/Hard Time Limit
+- [ ] Soft limit: "spróbuj skończyć do X ms" (można kontynuować jeśli jest czas)
+- [ ] Hard limit: "bezwzględnie przerwij przed Y ms"
+- Przykład: soft=2000ms, hard=2800ms → jeśli skończę depth 6 w 1800ms, mogę spróbować depth 7
+
+### 🟢 Adaptacyjna alokacja (Smart Time)
+- [ ] Jedyny legalny ruch → zagraj natychmiast (0ms)
+- [ ] Score stability: krótszy czas gdy wynik stabilny przez 3 głębokości
+- [ ] Position complexity: więcej czasu na skomplikowane pozycje (dużo bić/szachów)
+- [ ] Otwarcie (pierwsze 15-20 ruchów): mniej czasu (mamy książkę otwarć)
+
+### 🟢 Pondering
+- [ ] Myślenie w czasie przeciwnika (`go ponder`)
+- [ ] Obsługa `ponderhit` (przeciwnik zagrał przewidziany ruch)
+- [ ] Wymaga: predykcji najbardziej prawdopodobnej odpowiedzi
 
 ## Iteracja 14: UCI Options
 - [ ] Obsługa `setoption name X value Y`
 - [ ] Opcja `Hash` (rozmiar transposition table w MB)
 - [ ] Opcja `Threads` (liczba wątków - przygotowanie pod multi-threading)
-- [ ] Opcja `Move Overhead` (margines czasowy)
 - [ ] Opcja `UCI_ShowWDL` (pokazywanie Win/Draw/Loss)
 - [ ] Ponder (`go ponder`, `ponderhit`, `stop`)
 

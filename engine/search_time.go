@@ -109,8 +109,12 @@ func SearchWithTime(pos board.Position, pieceMoves board.PieceMoves, timeLimit t
 	return bestResult
 }
 
+// Emergency buffer to account for network lag and UCI overhead (in ms).
+const emergencyBuffer = 200
+
 // AllocateTime calculates how much time to spend on a move.
 // wtime/btime are in milliseconds, returns duration.
+// Includes emergency buffer to prevent time losses from lag.
 func AllocateTime(wtime, btime, winc, binc int, isWhite bool, movestogo int) time.Duration {
 	var myTime, myInc int
 	if isWhite {
@@ -121,23 +125,30 @@ func AllocateTime(wtime, btime, winc, binc int, isWhite bool, movestogo int) tim
 		myInc = binc
 	}
 
+	var allocated int
+
 	// If movestogo is specified, divide time by moves remaining
 	if movestogo > 0 {
 		// Use most of allotted time + increment
-		allocated := myTime/movestogo + myInc*3/4
-		return time.Duration(allocated) * time.Millisecond
+		allocated = myTime/movestogo + myInc*3/4
+	} else {
+		// Otherwise, assume ~30 moves remaining
+		// Allocate time/30 + 3/4 of increment
+		allocated = myTime/30 + myInc*3/4
+
+		// Minimum 100ms, maximum 1/3 of remaining time
+		if allocated < 100 {
+			allocated = 100
+		}
+		if allocated > myTime/3 {
+			allocated = myTime / 3
+		}
 	}
 
-	// Otherwise, assume ~30 moves remaining
-	// Allocate time/30 + 3/4 of increment
-	allocated := myTime/30 + myInc*3/4
-
-	// Minimum 100ms, maximum 1/3 of remaining time
-	if allocated < 100 {
-		allocated = 100
-	}
-	if allocated > myTime/3 {
-		allocated = myTime / 3
+	// Apply emergency buffer to prevent time losses from network lag
+	allocated -= emergencyBuffer
+	if allocated < 50 {
+		allocated = 50 // Absolute minimum
 	}
 
 	return time.Duration(allocated) * time.Millisecond
