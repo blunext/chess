@@ -66,7 +66,7 @@ func (l *Logger) writer() {
 	for info := range l.queue {
 		// Format: [YYYY-MM-DD HH:MM:SS] Move: ... | Score: ... | ...
 		//line := fmt.Sprintf("[%s] Move: %-5s | Score: %-8s | Depth: %d | Source: %-6s | Nodes: %-8d | Time: %-6s | FEN: %s\n",
-		line := fmt.Sprintf("[%s] Move: %-5s | Score: %-8s | Source: %-6s | Nodes: %-8d | Time: %-6s | FEN: %s\n",
+		line := fmt.Sprintf("%s | M: %-5s | Sc: %-8s | %-6s | Ns: %-8d | T: %-6s | FEN: %s\n",
 			info.Timestamp.Format("15:04:05"),
 			info.Move,
 			info.Score,
