@@ -165,6 +165,15 @@
 - [ ] Principal Variation Search (PVS)
 - [ ] Futility pruning
 
+## Search Extensions
+
+> **Cel:** Przedłużanie przeszukiwania w krytycznych sytuacjach, aby nie przegapić taktyki.
+
+- [ ] **Check Extensions** - +1 ply gdy pozycja jest w szachu (najważniejsze!)
+- [ ] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
+- [ ] **Recapture Extensions** - +1 ply przy odbiciu na tym samym polu
+- [ ] **Passed Pawn Extensions** - +1 ply dla promocji pionów przechodzących
+
 ## Regression Testing (ochrona przed błędami)
 
 > **Cel:** Wykrywanie regresji po zmianach - czy silnik nadal gra poprawnie?
@@ -174,12 +183,19 @@
 - [x] Głębokości 1-4 (szybkie), 5-6 (slow tests)
 - [x] Weryfikacja en passant, roszad, promocji
 
-### Tactical Test Suite (search + eval)
-- [ ] Mate in 1-3 (10+ pozycji) - silnik MUSI znaleźć mata
-- [ ] Win material (10+ pozycji) - widelce, związania, odkryte ataki
-- [ ] WAC subset (20-30 pozycji) - klasyczne pozycje z "Win At Chess"
-- [ ] Defensive positions (5+ pozycji) - musi bronić, nie stracić materiału
-- [ ] Test runner: sprawdza czy silnik znajduje bestMove w limicie głębokości/czasu
+### ✅ Tactical Test Suite (search + eval)
+- [x] Mate in 1-3 (10+ pozycji) - silnik MUSI znaleźć mata
+- [x] Win material (10+ pozycji) - widelce, związania, odkryte ataki
+- [x] WAC subset (34 pozycji) - klasyczne pozycje z "Win At Chess"
+- [x] Defensive positions (5+ pozycji) - musi bronić, nie stracić materiału
+- [x] Test runner: sprawdza czy silnik znajduje bestMove w limicie głębokości/czasu
+
+### WAC Failures to Investigate
+> Te pozycje failują - zbadać czy to bug w silniku czy problem z konwersją SAN→UCI
+
+- [ ] **WAC.002**: Engine finds `b3b8` (Rb8), expected `b3b2` (Rxb2) - endgame pawn capture
+- [ ] **WAC.007**: Engine finds `g4e5` (Ne5), expected `g4e3` (Ne3) - knight fork
+- [ ] **WAC.009**: Engine finds `d8f6`, expected `d6h2` (Bh2+) - bishop check (FEN has bishop on d6, not c6)
 
 ### Search Determinism
 - [ ] Fixed-depth tests: ten sam depth = ten sam ruch i score

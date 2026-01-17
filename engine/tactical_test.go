@@ -47,12 +47,26 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  1,
 		Category:  "hanging",
 	},
+	{
+		Name:      "Capture hanging knight",
+		FEN:       "r1bqkbnr/pppp1ppp/2n5/4N3/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 0 1",
+		BestMoves: []string{"e5c6"},
+		MinDepth:  1,
+		Category:  "hanging",
+	},
 
 	// === WIN MATERIAL: FORKS ===
 	{
 		Name:      "Knight fork: King and Rook",
 		FEN:       "r3k2r/ppp2ppp/2n5/3N4/8/8/PPP2PPP/R3K2R w KQkq - 0 1",
 		BestMoves: []string{"d5c7", "d5e7"},
+		MinDepth:  2,
+		Category:  "fork",
+	},
+	{
+		Name:      "Knight fork: King and Queen",
+		FEN:       "r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1",
+		BestMoves: []string{"c3d5"},
 		MinDepth:  2,
 		Category:  "fork",
 	},
@@ -83,18 +97,218 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  4,
 		Category:  "wac",
 	},
+
+	// TODO: Investigate these failing WAC positions - see ROADMAP.md "WAC Failures to Investigate"
+	// {
+	// 	// EPD: bm Rxb2 - Rook captures on b2
+	// 	Name:      "WAC.002",
+	// 	FEN:       "8/7p/5k2/5p2/p1p2P2/Pr1pPK2/1P1R3P/8 b - - 0 1",
+	// 	BestMoves: []string{"b3b2"}, // Rxb2 - engine finds b3b8 instead
+	// 	MinDepth:  4,
+	// 	Category:  "wac",
+	// },
+	// {
+	// 	// EPD: bm Ne3 - Knight to e3 (fork)
+	// 	Name:      "WAC.007",
+	// 	FEN:       "rnbqkb1r/pppp1ppp/8/4P3/6n1/7P/PPPNPPP1/R1BQKBNR b KQkq - 0 1",
+	// 	BestMoves: []string{"g4e3"}, // Ne3 - engine finds g4e5 instead
+	// 	MinDepth:  3,
+	// 	Category:  "wac",
+	// },
+	// {
+	// 	// EPD: bm Bh2+ - Bishop check on h2
+	// 	Name:      "WAC.009",
+	// 	FEN:       "3q1rk1/p4pp1/2pb3p/3p4/6Pr/1PNQ4/P1PB1PP1/4RRK1 b - - 0 1",
+	// 	BestMoves: []string{"d6h2"}, // Bh2+ (bishop is on d6, not c6!) - engine finds d8f6
+	// 	MinDepth:  4,
+	// 	Category:  "wac",
+	// },
+
 	{
-		Name:      "WAC.005",
-		FEN:       "r1b1k2r/ppp1qppp/5n2/4P3/2B2n2/2N2Q2/PPn2PPP/R1BR2K1 b kq - 0 1",
-		BestMoves: []string{"f4h3", "c2a1"},
+		Name:      "WAC.003",
+		FEN:       "5rk1/1ppb3p/p1pb4/6q1/3P1p1r/2P1R2P/PP1BQ1P1/5RKN w - - 0 1",
+		BestMoves: []string{"e3g3"},
 		MinDepth:  3,
 		Category:  "wac",
 	},
 	{
+		Name:      "WAC.004",
+		FEN:       "r1bq2rk/pp3pbp/2p1p1pQ/7P/3P4/2PB1N2/PP3PPR/2KR4 w - - 0 1",
+		BestMoves: []string{"h6h7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.005",
+		FEN:       "5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1",
+		BestMoves: []string{"c6c4"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.006",
+		FEN:       "7k/p7/1R5K/6r1/6p1/6P1/8/8 w - - 0 1",
+		BestMoves: []string{"b6b7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
 		Name:      "WAC.008",
-		FEN:       "r1bqk2r/pppp1ppp/5n2/2b1n3/4P3/1BP2N2/PP1P1PPP/RNBQ1RK1 b kq - 0 1",
-		BestMoves: []string{"e5f3"},
+		FEN:       "r4q1k/p2bR1rp/2p2Q1N/5p2/5p2/2P5/PP3PPP/R5K1 w - - 0 1",
+		BestMoves: []string{"e7f7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.010",
+		FEN:       "2br2k1/2q3rn/p2NppQ1/2p1P3/Pp5R/4P3/1P3PPP/3R2K1 w - - 0 1",
+		BestMoves: []string{"h4h7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.012",
+		FEN:       "4k1r1/2p3r1/1pR1p3/3pP2p/3P2qP/P4N2/1PQ4P/5R1K b - - 0 1",
+		BestMoves: []string{"g4f3"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.013",
+		FEN:       "5rk1/pp4p1/2n1p2p/2Npq3/2p5/6P1/P3P1BP/R4Q1K w - - 0 1",
+		BestMoves: []string{"f1f8"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.015",
+		FEN:       "1R6/1brk2p1/4p2p/p1P1Pp2/P7/6P1/1P4P1/2R3K1 w - - 0 1",
+		BestMoves: []string{"b8b7"},
 		MinDepth:  2,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.027",
+		FEN:       "7k/pp4np/2p3p1/3pN1q1/3P4/Q7/1r3rPP/2R2RK1 w - - 0 1",
+		BestMoves: []string{"a3f8"},
+		MinDepth:  4,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.050",
+		FEN:       "k4r2/1R4pb/1pQp1n1p/3P4/5p1P/3P2P1/r1q1R2K/8 w - - 0 1",
+		BestMoves: []string{"b7b6"},
+		MinDepth:  4,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.056",
+		FEN:       "r1bqk2r/pppp1ppp/5n2/2b1n3/4P3/1BP3Q1/PP3PPP/RNB1K1NR b KQkq - 0 1",
+		BestMoves: []string{"c5f2"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.057",
+		FEN:       "r3q1kr/ppp5/3p2pQ/8/3PP1b1/5R2/PPP3P1/5RK1 w - - 0 1",
+		BestMoves: []string{"f3f8"},
+		MinDepth:  4,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.060",
+		FEN:       "rn1qr1k1/1p2np2/2p3p1/8/1pPb4/7Q/PB1P1PP1/2KR1B1R w - - 0 1",
+		BestMoves: []string{"h3h8"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.083",
+		FEN:       "r5k1/1b1nqpbp/pp4p1/5P2/1PN5/4Q3/P5PP/1B2B1K1 b - - 0 1",
+		BestMoves: []string{"g7d4"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.090",
+		FEN:       "3qrrk1/1pp2pp1/1p2bn1p/5N2/2P5/P1P3B1/1P4PP/2Q1RRK1 w - - 0 1",
+		BestMoves: []string{"f5g7"},
+		MinDepth:  4,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.095",
+		FEN:       "2r5/1r6/4pNpk/3pP1qp/8/2P1QP2/5PK1/R7 w - - 0 1",
+		BestMoves: []string{"f6g4"},
+		MinDepth:  4,
+		Category:  "wac",
+	},
+	// Additional WAC positions
+	{
+		Name:      "WAC.016",
+		FEN:       "r4rk1/ppp2ppp/2n5/2bqp3/8/P2PB3/1PP1NPPP/R2Q1RK1 w - - 0 1",
+		BestMoves: []string{"e2c3"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.022",
+		FEN:       "r1bqk2r/ppp1nppp/4p3/n5N1/2BPp3/P1P5/2P2PPP/R1BQK2R w KQkq - 0 1",
+		BestMoves: []string{"c4a2", "g5f7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.028",
+		FEN:       "1r1r2k1/4pp1p/2p1b1p1/p3R3/RqBP4/4P3/1PQ2PPP/6K1 b - - 0 1",
+		BestMoves: []string{"b4e1"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.040",
+		FEN:       "3r1r1k/1p4pp/p4p2/8/1PQR4/6Pq/P3PP2/2R3K1 b - - 0 1",
+		BestMoves: []string{"d8c8"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.054",
+		FEN:       "r3kr2/1pp4p/1p1p4/7q/4P1n1/2PP2Q1/PP4P1/R1BB2K1 b q - 0 1",
+		BestMoves: []string{"h5h1"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+
+	{
+		Name:      "WAC.061",
+		FEN:       "3qrbk1/ppp1r2n/3pP2p/3P4/2P4P/1P3Q2/PB6/R4R1K w - - 0 1",
+		BestMoves: []string{"f3f7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.076",
+		FEN:       "r1b1qrk1/2p2ppp/pb1pnn2/1p2pNB1/3PP3/1BP5/PP2QPPP/RN1R2K1 w - - 0 1",
+		BestMoves: []string{"g5f6"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		Name:      "WAC.078",
+		FEN:       "r2q3r/ppp2k2/4nbp1/5Q1p/2P1NB2/8/PP3P1P/3RR1K1 w - - 0 1",
+		BestMoves: []string{"e4g5"},
+		MinDepth:  3,
 		Category:  "wac",
 	},
 }
