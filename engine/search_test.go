@@ -2,6 +2,7 @@ package engine
 
 import (
 	"testing"
+	"time"
 
 	"chess/board"
 
@@ -222,4 +223,56 @@ func TestQuiescence_SeesRecapture(t *testing.T) {
 	assert.Equal(t, "e6d5", result.Move.ToUCI(), "Black should capture the knight")
 	// Score should be negative (favorable to black)
 	assert.Less(t, result.Score, 0, "Score should be negative (black winning)")
+}
+
+// === Time Management Tests ===
+
+func TestSearchWithTime_ReturnsInTime(t *testing.T) {
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+	pm := createTestPieceMoves()
+
+	timeLimit := 100 * time.Millisecond
+	start := time.Now()
+	result := SearchWithTime(pos, pm, timeLimit)
+	elapsed := time.Since(start)
+
+	// Should return within reasonable time (allow some overhead)
+	assert.Less(t, elapsed, 200*time.Millisecond, "Search should complete within time limit")
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
+	assert.Greater(t, result.Depth, 0, "Should reach at least depth 1")
+}
+
+func TestSearchWithTime_IterativeDeepening(t *testing.T) {
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+	pm := createTestPieceMoves()
+
+	// With 500ms, should reach multiple depths
+	result := SearchWithTime(pos, pm, 500*time.Millisecond)
+
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
+	assert.GreaterOrEqual(t, result.Depth, 3, "Should reach at least depth 3 in 500ms")
+}
+
+func TestAllocateTime_Basic(t *testing.T) {
+	// 60 seconds remaining, no increment
+	allocated := AllocateTime(60000, 60000, 0, 0, true, 0)
+	// Should allocate about 2 seconds (60000/30)
+	assert.GreaterOrEqual(t, allocated, 1500*time.Millisecond)
+	assert.LessOrEqual(t, allocated, 3000*time.Millisecond)
+}
+
+func TestAllocateTime_WithIncrement(t *testing.T) {
+	// 60 seconds + 1 second increment
+	allocated := AllocateTime(60000, 60000, 1000, 1000, true, 0)
+	// Should be slightly more than without increment
+	noInc := AllocateTime(60000, 60000, 0, 0, true, 0)
+	assert.Greater(t, allocated, noInc, "Increment should increase allocated time")
+}
+
+func TestAllocateTime_MovesToGo(t *testing.T) {
+	// 60 seconds, 10 moves to go
+	allocated := AllocateTime(60000, 60000, 0, 0, true, 10)
+	// Should allocate about 6 seconds (60000/10)
+	assert.GreaterOrEqual(t, allocated, 5*time.Second)
+	assert.LessOrEqual(t, allocated, 7*time.Second)
 }

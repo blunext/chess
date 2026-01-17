@@ -89,8 +89,20 @@ func SearchWithBook(pos board.Position, pieceMoves board.PieceMoves, depth int) 
 	return Search(pos, pieceMoves, depth)
 }
 
-// Search finds the best move using alpha-beta pruning.
+// Search finds the best move using alpha-beta pruning with fixed depth.
+// Internally uses the timed search with a very long timeout.
 func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchResult {
+	ctx := NewSearchContext(24 * time.Hour) // Effectively no time limit
+	result := searchRootDepth(pos, pieceMoves, depth, ctx)
+	return SearchResult{
+		Move:  result.Move,
+		Score: result.Score,
+		Nodes: ctx.nodes,
+	}
+}
+
+// searchRootDepth searches to a fixed depth (used by Search and iterative deepening).
+func searchRootDepth(pos board.Position, pieceMoves board.PieceMoves, depth int, ctx *SearchContext) SearchResult {
 	moves := pos.GenerateLegalMoves(pieceMoves)
 	sortMoves(moves)
 
@@ -106,7 +118,6 @@ func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchRe
 
 	var bestMove board.Move
 	var bestScore int
-	var nodes int64
 
 	alpha := -infinity
 	beta := infinity
@@ -115,9 +126,12 @@ func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchRe
 		bestScore = -infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score, n := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta)
-			nodes += n
+			score := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
+
+			if ctx.stopped.Load() {
+				break
+			}
 
 			if score > bestScore {
 				bestScore = score
@@ -131,9 +145,12 @@ func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchRe
 		bestScore = infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score, n := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta)
-			nodes += n
+			score := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
+
+			if ctx.stopped.Load() {
+				break
+			}
 
 			if score < bestScore {
 				bestScore = score
@@ -145,17 +162,21 @@ func Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchRe
 		}
 	}
 
-	return SearchResult{Move: bestMove, Score: bestScore, Nodes: nodes}
+	return SearchResult{Move: bestMove, Score: bestScore, Nodes: ctx.nodes}
 }
 
 // alphaBeta returns the evaluation score using alpha-beta pruning.
 // Alpha = best score the maximizer (white) can guarantee
 // Beta = best score the minimizer (black) can guarantee
-// Returns (score, nodesSearched)
-func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alpha, beta int) (int, int64) {
+func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alpha, beta int, ctx *SearchContext) int {
+	// Increment node counter and check timeout every 2048 nodes
+	ctx.nodes++
+	if ctx.nodes&2047 == 0 && ctx.checkTimeout() {
+		return 0
+	}
+
 	if depth == 0 {
-		// At depth 0, continue with quiescence search to avoid horizon effect
-		return quiescence(pos, pieceMoves, alpha, beta)
+		return quiescence(pos, pieceMoves, alpha, beta, ctx)
 	}
 
 	moves := pos.GenerateLegalMoves(pieceMoves)
@@ -164,23 +185,23 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 	if len(moves) == 0 {
 		if pos.IsInCheck() {
 			if pos.WhiteMove {
-				return -mateScore + (10 - depth), 1 // Prefer faster mates
+				return -mateScore + (10 - depth)
 			}
-			return mateScore - (10 - depth), 1
+			return mateScore - (10 - depth)
 		}
-		return 0, 1 // Stalemate
+		return 0 // Stalemate
 	}
 
-	var nodes int64
-
 	if pos.WhiteMove {
-		// Maximizing player
 		bestScore := -infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score, n := alphaBeta(pos, pieceMoves, depth-1, alpha, beta)
-			nodes += n
+			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
+
+			if ctx.stopped.Load() {
+				return 0
+			}
 
 			if score > bestScore {
 				bestScore = score
@@ -188,20 +209,21 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 			if score > alpha {
 				alpha = score
 			}
-			// Beta cutoff - black already has a better option
 			if alpha >= beta {
 				break
 			}
 		}
-		return bestScore, nodes
+		return bestScore
 	} else {
-		// Minimizing player
 		bestScore := infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score, n := alphaBeta(pos, pieceMoves, depth-1, alpha, beta)
-			nodes += n
+			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
+
+			if ctx.stopped.Load() {
+				return 0
+			}
 
 			if score < bestScore {
 				bestScore = score
@@ -209,79 +231,81 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 			if score < beta {
 				beta = score
 			}
-			// Alpha cutoff - white already has a better option
 			if alpha >= beta {
 				break
 			}
 		}
-		return bestScore, nodes
+		return bestScore
 	}
 }
 
 // quiescence continues search only for captures to avoid horizon effect.
-// This prevents the engine from "hiding" losses just beyond the search depth.
-// Returns (score, nodesSearched)
-func quiescence(pos *board.Position, pieceMoves board.PieceMoves, alpha, beta int) (int, int64) {
-	// Stand pat: the player can choose not to capture
+func quiescence(pos *board.Position, pieceMoves board.PieceMoves, alpha, beta int, ctx *SearchContext) int {
+	ctx.nodes++
+	if ctx.nodes&2047 == 0 && ctx.checkTimeout() {
+		return 0
+	}
+
 	standPat := Evaluate(*pos)
-	var nodes int64 = 1
 
 	if pos.WhiteMove {
-		// Maximizing player
 		if standPat >= beta {
-			return beta, nodes // Beta cutoff
+			return beta
 		}
 		if standPat > alpha {
 			alpha = standPat
 		}
 
-		// Generate and filter captures only
 		moves := pos.GenerateLegalMoves(pieceMoves)
 		captures := filterCaptures(moves)
 		sortMoves(captures)
 
 		for _, move := range captures {
 			undo := pos.MakeMove(move)
-			score, n := quiescence(pos, pieceMoves, alpha, beta)
-			nodes += n
+			score := quiescence(pos, pieceMoves, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
+
+			if ctx.stopped.Load() {
+				return 0
+			}
 
 			if score > alpha {
 				alpha = score
 			}
 			if alpha >= beta {
-				break // Beta cutoff
+				break
 			}
 		}
-		return alpha, nodes
+		return alpha
 	} else {
-		// Minimizing player
 		if standPat <= alpha {
-			return alpha, nodes // Alpha cutoff
+			return alpha
 		}
 		if standPat < beta {
 			beta = standPat
 		}
 
-		// Generate and filter captures only
 		moves := pos.GenerateLegalMoves(pieceMoves)
 		captures := filterCaptures(moves)
 		sortMoves(captures)
 
 		for _, move := range captures {
 			undo := pos.MakeMove(move)
-			score, n := quiescence(pos, pieceMoves, alpha, beta)
-			nodes += n
+			score := quiescence(pos, pieceMoves, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
+
+			if ctx.stopped.Load() {
+				return 0
+			}
 
 			if score < beta {
 				beta = score
 			}
 			if alpha >= beta {
-				break // Alpha cutoff
+				break
 			}
 		}
-		return beta, nodes
+		return beta
 	}
 }
 

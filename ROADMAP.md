@@ -96,14 +96,14 @@
 - [x] Zobrist hashing
 - [x] Opening book (Polyglot format)
 - [x] Quiescence search (kontynuacja przeszukiwania dla bić)
-- [ ] Iterative deepening
+- [x] Iterative deepening
 - [ ] Transposition table
 
-## Iteracja 13: Time Management (podstawowy)
-- [ ] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
-- [ ] Parsowanie wtime/btime/winc/binc w UCI
-- [ ] Przerwanie search gdy czas się kończy (timeout check co N węzłów)
-- [ ] Alokacja czasu (prosta heurystyka: czas/30)
+## ✅ Iteracja 13: Time Management (podstawowy)
+- [x] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
+- [x] Parsowanie wtime/btime/winc/binc w UCI
+- [x] Przerwanie search gdy czas się kończy (timeout check co N węzłów)
+- [x] Alokacja czasu (prosta heurystyka: czas/30)
 
 ## Iteracja 13b: Time Management (zaawansowany)
 - [ ] Soft/Hard time limit (miękki 2s, twardy 10s dla trudnych pozycji)

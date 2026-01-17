@@ -1,0 +1,144 @@
+package engine
+
+import (
+	"sync/atomic"
+	"time"
+
+	"chess/board"
+	"chess/book"
+)
+
+// SearchContext holds state for time-managed search.
+type SearchContext struct {
+	startTime time.Time
+	timeLimit time.Duration
+	nodes     int64
+	stopped   atomic.Bool
+}
+
+// NewSearchContext creates a new search context with the given time limit.
+func NewSearchContext(timeLimit time.Duration) *SearchContext {
+	return &SearchContext{
+		startTime: time.Now(),
+		timeLimit: timeLimit,
+	}
+}
+
+// checkTimeout checks if time has expired (called every N nodes).
+func (ctx *SearchContext) checkTimeout() bool {
+	if ctx.stopped.Load() {
+		return true
+	}
+	if time.Since(ctx.startTime) >= ctx.timeLimit {
+		ctx.stopped.Store(true)
+		return true
+	}
+	return false
+}
+
+// Stop signals the search to stop.
+func (ctx *SearchContext) Stop() {
+	ctx.stopped.Store(true)
+}
+
+// Elapsed returns time elapsed since search started.
+func (ctx *SearchContext) Elapsed() time.Duration {
+	return time.Since(ctx.startTime)
+}
+
+// SearchResultTimed contains the best move with depth info.
+type SearchResultTimed struct {
+	Move     board.Move
+	Score    int
+	Depth    int
+	Nodes    int64
+	Time     time.Duration
+	FromBook bool
+}
+
+// SearchWithTime performs iterative deepening search with time limit.
+// It searches progressively deeper until time runs out.
+// Uses the unified alphaBeta/quiescence from search.go.
+func SearchWithTime(pos board.Position, pieceMoves board.PieceMoves, timeLimit time.Duration) SearchResultTimed {
+	// Try opening book first
+	if OpeningBook != nil {
+		polyHash := book.PolyglotHash(pos)
+		if bookMove, ok := OpeningBook.ProbeRandom(polyHash, bookRng); ok {
+			legalMoves := pos.GenerateLegalMoves(pieceMoves)
+			for _, m := range legalMoves {
+				if m.From == bookMove.From && m.To == bookMove.To && m.Promotion == bookMove.Promotion {
+					return SearchResultTimed{Move: m, FromBook: true}
+				}
+			}
+		}
+	}
+
+	ctx := NewSearchContext(timeLimit)
+	var bestResult SearchResultTimed
+
+	// Iterative deepening: search depth 1, 2, 3, ... until time runs out
+	for depth := 1; depth <= 100; depth++ {
+		result := searchRootDepth(pos, pieceMoves, depth, ctx)
+
+		// If search was stopped mid-way, don't use partial results
+		if ctx.stopped.Load() && depth > 1 {
+			break
+		}
+
+		// Update best result
+		bestResult = SearchResultTimed{
+			Move:  result.Move,
+			Score: result.Score,
+			Depth: depth,
+			Nodes: ctx.nodes,
+			Time:  ctx.Elapsed(),
+		}
+
+		// If we found a mate, no need to search deeper
+		if result.Score > mateScore-100 || result.Score < -mateScore+100 {
+			break
+		}
+
+		// Check if we have time for another iteration
+		// Heuristic: next depth takes ~3-4x longer
+		if ctx.Elapsed()*4 >= timeLimit {
+			break
+		}
+	}
+
+	return bestResult
+}
+
+// AllocateTime calculates how much time to spend on a move.
+// wtime/btime are in milliseconds, returns duration.
+func AllocateTime(wtime, btime, winc, binc int, isWhite bool, movestogo int) time.Duration {
+	var myTime, myInc int
+	if isWhite {
+		myTime = wtime
+		myInc = winc
+	} else {
+		myTime = btime
+		myInc = binc
+	}
+
+	// If movestogo is specified, divide time by moves remaining
+	if movestogo > 0 {
+		// Use most of allotted time + increment
+		allocated := myTime/movestogo + myInc*3/4
+		return time.Duration(allocated) * time.Millisecond
+	}
+
+	// Otherwise, assume ~30 moves remaining
+	// Allocate time/30 + 3/4 of increment
+	allocated := myTime/30 + myInc*3/4
+
+	// Minimum 100ms, maximum 1/3 of remaining time
+	if allocated < 100 {
+		allocated = 100
+	}
+	if allocated > myTime/3 {
+		allocated = myTime / 3
+	}
+
+	return time.Duration(allocated) * time.Millisecond
+}

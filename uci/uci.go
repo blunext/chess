@@ -157,7 +157,10 @@ func (uci *UCI) cmdPosition(args []string) {
 // go infinite
 // go movetime 1000
 func (uci *UCI) cmdGo(args []string) {
-	depth := engine.DefaultSearchDepth // default depth
+	var depth int
+	var wtime, btime, winc, binc, movestogo, movetime int
+	useTimeControl := false
+	infinite := false
 
 	// Parse arguments
 	for i := 0; i < len(args); i++ {
@@ -169,20 +172,82 @@ func (uci *UCI) cmdGo(args []string) {
 				}
 				i++
 			}
-		case "wtime", "btime", "winc", "binc", "movestogo", "movetime":
-			// Skip time control for now (use fixed depth)
+		case "wtime":
 			if i+1 < len(args) {
+				wtime, _ = strconv.Atoi(args[i+1])
+				useTimeControl = true
+				i++
+			}
+		case "btime":
+			if i+1 < len(args) {
+				btime, _ = strconv.Atoi(args[i+1])
+				useTimeControl = true
+				i++
+			}
+		case "winc":
+			if i+1 < len(args) {
+				winc, _ = strconv.Atoi(args[i+1])
+				i++
+			}
+		case "binc":
+			if i+1 < len(args) {
+				binc, _ = strconv.Atoi(args[i+1])
+				i++
+			}
+		case "movestogo":
+			if i+1 < len(args) {
+				movestogo, _ = strconv.Atoi(args[i+1])
+				i++
+			}
+		case "movetime":
+			if i+1 < len(args) {
+				movetime, _ = strconv.Atoi(args[i+1])
 				i++
 			}
 		case "infinite":
-			depth = 6 // Use reasonable depth for infinite
+			infinite = true
 		}
 	}
 
-	start := time.Now()
-	// Run search (with opening book if available)
-	result := engine.SearchWithBook(uci.position, uci.pieceMoves, depth)
-	duration := time.Since(start)
+	var result engine.SearchResultTimed
+
+	if movetime > 0 {
+		// Fixed time per move
+		timeLimit := time.Duration(movetime) * time.Millisecond
+		result = engine.SearchWithTime(uci.position, uci.pieceMoves, timeLimit)
+	} else if useTimeControl {
+		// Time control: allocate time based on remaining time
+		timeLimit := engine.AllocateTime(wtime, btime, winc, binc, uci.position.WhiteMove, movestogo)
+		result = engine.SearchWithTime(uci.position, uci.pieceMoves, timeLimit)
+	} else if depth > 0 {
+		// Fixed depth search
+		fixedResult := engine.SearchWithBook(uci.position, uci.pieceMoves, depth)
+		result = engine.SearchResultTimed{
+			Move:     fixedResult.Move,
+			Score:    fixedResult.Score,
+			Depth:    depth,
+			Nodes:    fixedResult.Nodes,
+			FromBook: fixedResult.FromBook,
+		}
+	} else if infinite {
+		// Infinite: use long time limit
+		result = engine.SearchWithTime(uci.position, uci.pieceMoves, 24*time.Hour)
+	} else {
+		// Default: use default depth
+		fixedResult := engine.SearchWithBook(uci.position, uci.pieceMoves, engine.DefaultSearchDepth)
+		result = engine.SearchResultTimed{
+			Move:     fixedResult.Move,
+			Score:    fixedResult.Score,
+			Depth:    engine.DefaultSearchDepth,
+			Nodes:    fixedResult.Nodes,
+			FromBook: fixedResult.FromBook,
+		}
+	}
+
+	duration := result.Time
+	if duration == 0 {
+		duration = time.Millisecond // Avoid division by zero
+	}
 
 	// Output best move
 	if result.Move != (board.Move{}) {
@@ -209,7 +274,7 @@ func (uci *UCI) cmdGo(args []string) {
 					return "Search"
 				}(),
 				Score:    scoreStr,
-				Depth:    depth,
+				Depth:    result.Depth,
 				Nodes:    result.Nodes,
 				Duration: duration,
 			})
