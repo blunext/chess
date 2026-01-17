@@ -98,7 +98,7 @@
 - [x] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [x] Iterative deepening
 - [x] Transposition table
-- [x] Null Move Pruning (R=2, z zabezpieczeniem przed zugzwangiem)
+- [ ] ~~Null Move Pruning~~ (wyłączone - patrz sekcja "Search pruning")
 
 ## ✅ Iteracja 13: Time Management (podstawowy)
 - [x] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)
@@ -148,16 +148,48 @@
 # Dalsze optymalizacje (po podstawowej wersji)
 
 ## Search pruning
-- [x] Null move pruning
+
+### Null Move Pruning (wyłączone - wymaga poprawek)
+> **Problem:** Podstawowa implementacja NMP powoduje błędne odcinanie linii na głębszych poziomach (depth 7+), co prowadzi do złych wyborów ruchów.
+
+- [x] Podstawowa implementacja (R=2, depth >= 3)
+- [ ] **Verification search** - po null move cutoff, weryfikuj wynik pełnym przeszukiwaniem
+- [ ] **Static eval check** - NMP tylko gdy staticEval >= beta
+- [ ] **Dynamiczne R** - redukcja zależna od głębokości: R = 2 + depth/6
+- [ ] **Threat detection** - nie rób NMP gdy są oczywiste groźby
+- [ ] Re-enable po implementacji verification search
+
+### Inne techniki pruning
 - [ ] Late Move Reductions (LMR)
 - [ ] Aspiration windows
 - [ ] Principal Variation Search (PVS)
 - [ ] Futility pruning
 
 ## Regression Testing (ochrona przed błędami)
-- [ ] Perft test (weryfikacja poprawności generowania ruchów)
-- [ ] Tactical test suite (zbiór pozycji taktycznych: mat, widelec, związanie)
-- [ ] Self-play tournament (porównanie wersji silnika, 100+ partii)
+
+> **Cel:** Wykrywanie regresji po zmianach - czy silnik nadal gra poprawnie?
+
+### ✅ Perft (move generator)
+- [x] Perft dla 6 standardowych pozycji (Initial, Kiwipete, Position 3-6)
+- [x] Głębokości 1-4 (szybkie), 5-6 (slow tests)
+- [x] Weryfikacja en passant, roszad, promocji
+
+### Tactical Test Suite (search + eval)
+- [ ] Mate in 1-3 (10+ pozycji) - silnik MUSI znaleźć mata
+- [ ] Win material (10+ pozycji) - widelce, związania, odkryte ataki
+- [ ] WAC subset (20-30 pozycji) - klasyczne pozycje z "Win At Chess"
+- [ ] Defensive positions (5+ pozycji) - musi bronić, nie stracić materiału
+- [ ] Test runner: sprawdza czy silnik znajduje bestMove w limicie głębokości/czasu
+
+### Search Determinism
+- [ ] Fixed-depth tests: ten sam depth = ten sam ruch i score
+- [ ] Benchmark positions z zapisanymi expected values
+- [ ] Wykrywanie czy "optymalizacja" przypadkiem nie zmienia wyników
+
+### Self-play Tournament (opcjonalne)
+- [ ] Nowa wersja vs stara wersja (100+ partii)
+- [ ] Statystyczna weryfikacja że siła gry nie spadła
+- [ ] Narzędzie: cutechess-cli lub własny skrypt
 
 ## Move ordering zaawansowane
 - [ ] History heuristic
