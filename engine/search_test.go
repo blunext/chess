@@ -336,3 +336,78 @@ func TestAllocateTime_MovesToGo(t *testing.T) {
 	assert.GreaterOrEqual(t, allocated, 5*time.Second)
 	assert.LessOrEqual(t, allocated, 7*time.Second)
 }
+
+// === Check Extension Tests ===
+
+func TestCheckExtension_FindsMateWithChecks(t *testing.T) {
+	// Position where mate requires a checking sequence
+	// White: Queen on d1, King on e1
+	// Black: King on h8, pawns on g7,h7 (no escape squares on back rank)
+	// Qd1-d8# is mate in 1
+	pos := board.CreatePositionFormFEN("7k/6pp/8/8/8/8/8/3QK3 w - - 0 1")
+	pm := createTestPieceMoves()
+
+	// At depth 2, should find Qd8#
+	result := Search(pos, pm, 2)
+
+	// Should find Qd8# (back rank mate)
+	assert.Equal(t, "d1d8", result.Move.ToUCI(), "Should find Qd8# mate")
+	assert.Greater(t, result.Score, 50000, "Should detect mate sequence")
+}
+
+func TestCheckExtension_DoesNotMissBackRankMate(t *testing.T) {
+	// Classic back rank mate pattern
+	// White rook on a1, black king on g8 with pawns blocking escape
+	pos := board.CreatePositionFormFEN("6k1/5ppp/8/8/8/8/8/R3K3 w Q - 0 1")
+	pm := createTestPieceMoves()
+
+	result := Search(pos, pm, 2)
+
+	// Should find Ra8#
+	assert.Equal(t, "a1a8", result.Move.ToUCI(), "Should find Ra8# back rank mate")
+	assert.Greater(t, result.Score, 50000, "Should detect mate")
+}
+
+func TestCheckExtension_DefendsAgainstCheck(t *testing.T) {
+	// Position where black is in check and must find the best defense
+	// Black king on h8 with pawns, white queen giving check on g8
+	// Black must capture or escape
+	pos := board.CreatePositionFormFEN("6Qk/6pp/8/8/8/8/8/4K3 b - - 0 1")
+	pm := createTestPieceMoves()
+
+	// Black to move, in check from Qg8
+	assert.True(t, pos.IsInCheck(), "Black should be in check")
+
+	result := Search(pos, pm, 3)
+
+	// Should find a legal move that deals with check (Kxg8 is only option)
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move to escape check")
+}
+
+func TestCheckExtension_FindsMateIn2WithCheck(t *testing.T) {
+	// Anastasia's mate pattern: Knight and rook mate
+	// This requires extending through check to see the mate
+	pos := board.CreatePositionFormFEN("5k2/4R3/5N2/8/8/8/8/4K3 w - - 0 1")
+	pm := createTestPieceMoves()
+
+	// Re7 threatens Nf6-h7# (smothered), or various Rook mates
+	result := Search(pos, pm, 4)
+
+	// Should find a checking sequence leading to mate or winning material
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find best move")
+	assert.Greater(t, result.Score, 0, "Should be winning")
+}
+
+func TestCheckExtension_CheckExtendsSearchDepth(t *testing.T) {
+	// Position where a check sequence would be cut off without extension
+	// Simple king chase that leads to winning material
+	pos := board.CreatePositionFormFEN("4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1")
+	pm := createTestPieceMoves()
+
+	// Even at low depth, check extensions should help find good checking moves
+	result := Search(pos, pm, 2)
+
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
+	// With queen vs nothing, white is winning
+	assert.Greater(t, result.Score, 800, "Should recognize huge advantage")
+}

@@ -169,7 +169,7 @@
 
 > **Cel:** Przedłużanie przeszukiwania w krytycznych sytuacjach, aby nie przegapić taktyki.
 
-- [ ] **Check Extensions** - +1 ply gdy pozycja jest w szachu (najważniejsze!)
+- [x] **Check Extensions** - +1 ply gdy pozycja jest w szachu (najważniejsze!)
 - [ ] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
 - [ ] **Recapture Extensions** - +1 ply przy odbiciu na tym samym polu
 - [ ] **Passed Pawn Extensions** - +1 ply dla promocji pionów przechodzących
@@ -192,10 +192,15 @@
 
 ### WAC Failures to Investigate
 > Te pozycje failują - zbadać czy to bug w silniku czy problem z konwersją SAN→UCI
+> Pozycje zakomentowane w `engine/tactical_test.go`
 
 - [ ] **WAC.002**: Engine finds `b3b8` (Rb8), expected `b3b2` (Rxb2) - endgame pawn capture
+- [ ] **WAC.003**: Engine finds `e2c4`, expected `e3g3` (Rg3) - rook defense
 - [ ] **WAC.007**: Engine finds `g4e5` (Ne5), expected `g4e3` (Ne3) - knight fork
-- [ ] **WAC.009**: Engine finds `d8f6`, expected `d6h2` (Bh2+) - bishop check (FEN has bishop on d6, not c6)
+- [ ] **WAC.009**: Engine finds `d8f6`, expected `d6h2` (Bh2+) - bishop check
+- [ ] **WAC.022**: Engine finds `c4b5`, expected `c4a2` or `g5f7` (Ba2/Nf7)
+- [ ] **WAC.040**: Engine finds `d8d4`, expected `d8c8` (Rc8)
+- [ ] **WAC.083**: Engine finds `e7e3`, expected `g7d4` (Bd4)
 
 ### Search Determinism
 - [ ] Fixed-depth tests: ten sam depth = ten sam ruch i score

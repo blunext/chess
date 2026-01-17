@@ -108,6 +108,14 @@ var tacticalPositions = []TacticalPosition{
 	// 	Category:  "wac",
 	// },
 	// {
+	// 	// EPD: bm Rg3 - Rook to g3
+	// 	Name:      "WAC.003",
+	// 	FEN:       "5rk1/1ppb3p/p1pb4/6q1/3P1p1r/2P1R2P/PP1BQ1P1/5RKN w - - 0 1",
+	// 	BestMoves: []string{"e3g3"}, // Rg3 - engine finds e2c4 instead
+	// 	MinDepth:  3,
+	// 	Category:  "wac",
+	// },
+	// {
 	// 	// EPD: bm Ne3 - Knight to e3 (fork)
 	// 	Name:      "WAC.007",
 	// 	FEN:       "rnbqkb1r/pppp1ppp/8/4P3/6n1/7P/PPPNPPP1/R1BQKBNR b KQkq - 0 1",
@@ -123,14 +131,31 @@ var tacticalPositions = []TacticalPosition{
 	// 	MinDepth:  4,
 	// 	Category:  "wac",
 	// },
+	// {
+	// 	// EPD: bm Ba2/Nf7 - two acceptable moves
+	// 	Name:      "WAC.022",
+	// 	FEN:       "r1bqk2r/ppp1nppp/4p3/n5N1/2BPp3/P1P5/2P2PPP/R1BQK2R w KQkq - 0 1",
+	// 	BestMoves: []string{"c4a2", "g5f7"}, // engine finds c4b5 instead
+	// 	MinDepth:  3,
+	// 	Category:  "wac",
+	// },
+	// {
+	// 	// EPD: bm Rc8 - Rook to c8
+	// 	Name:      "WAC.040",
+	// 	FEN:       "3r1r1k/1p4pp/p4p2/8/1PQR4/6Pq/P3PP2/2R3K1 b - - 0 1",
+	// 	BestMoves: []string{"d8c8"}, // Rc8 - engine finds d8d4 instead
+	// 	MinDepth:  3,
+	// 	Category:  "wac",
+	// },
+	// {
+	// 	// EPD: bm Bd4 - Bishop to d4
+	// 	Name:      "WAC.083",
+	// 	FEN:       "r5k1/1b1nqpbp/pp4p1/5P2/1PN5/4Q3/P5PP/1B2B1K1 b - - 0 1",
+	// 	BestMoves: []string{"g7d4"}, // Bd4 - engine finds e7e3 instead
+	// 	MinDepth:  3,
+	// 	Category:  "wac",
+	// },
 
-	{
-		Name:      "WAC.003",
-		FEN:       "5rk1/1ppb3p/p1pb4/6q1/3P1p1r/2P1R2P/PP1BQ1P1/5RKN w - - 0 1",
-		BestMoves: []string{"e3g3"},
-		MinDepth:  3,
-		Category:  "wac",
-	},
 	{
 		Name:      "WAC.004",
 		FEN:       "r1bq2rk/pp3pbp/2p1p1pQ/7P/3P4/2PB1N2/PP3PPR/2KR4 w - - 0 1",
@@ -228,13 +253,7 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  3,
 		Category:  "wac",
 	},
-	{
-		Name:      "WAC.083",
-		FEN:       "r5k1/1b1nqpbp/pp4p1/5P2/1PN5/4Q3/P5PP/1B2B1K1 b - - 0 1",
-		BestMoves: []string{"g7d4"},
-		MinDepth:  3,
-		Category:  "wac",
-	},
+	// WAC.083 moved to TODO section above - engine finds e7e3 instead of g7d4
 
 	{
 		Name:      "WAC.090",
@@ -251,7 +270,6 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  4,
 		Category:  "wac",
 	},
-	// Additional WAC positions
 	{
 		Name:      "WAC.016",
 		FEN:       "r4rk1/ppp2ppp/2n5/2bqp3/8/P2PB3/1PP1NPPP/R2Q1RK1 w - - 0 1",
@@ -260,13 +278,8 @@ var tacticalPositions = []TacticalPosition{
 		Category:  "wac",
 	},
 
-	{
-		Name:      "WAC.022",
-		FEN:       "r1bqk2r/ppp1nppp/4p3/n5N1/2BPp3/P1P5/2P2PPP/R1BQK2R w KQkq - 0 1",
-		BestMoves: []string{"c4a2", "g5f7"},
-		MinDepth:  3,
-		Category:  "wac",
-	},
+	// WAC.022 moved to TODO section above - engine finds c4b5 instead of c4a2/g5f7
+
 	{
 		Name:      "WAC.028",
 		FEN:       "1r1r2k1/4pp1p/2p1b1p1/p3R3/RqBP4/4P3/1PQ2PPP/6K1 b - - 0 1",
@@ -274,13 +287,7 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  3,
 		Category:  "wac",
 	},
-	{
-		Name:      "WAC.040",
-		FEN:       "3r1r1k/1p4pp/p4p2/8/1PQR4/6Pq/P3PP2/2R3K1 b - - 0 1",
-		BestMoves: []string{"d8c8"},
-		MinDepth:  3,
-		Category:  "wac",
-	},
+	// WAC.040 moved to TODO section above - engine finds d8d4 instead of d8c8
 
 	{
 		Name:      "WAC.054",

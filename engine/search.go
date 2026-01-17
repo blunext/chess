@@ -221,10 +221,18 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		}
 	}
 
+	// Check if we're in check (used for extensions and null move)
+	inCheck := pos.IsInCheck()
+
+	// Check Extension: Extend search by 1 ply when in check
+	// This prevents the horizon effect where important checking sequences are cut off
+	if inCheck {
+		depth++
+	}
+
 	// Null Move Pruning
 	// Idea: if we can skip our move and still beat beta, the position is so good
 	// that we can prune. Skip if: in check, depth too shallow, endgame (zugzwang), or just did null move
-	inCheck := pos.IsInCheck()
 	if UseNullMovePruning && nullMoveAllowed && depth >= 4 && !inCheck && !isEndgame(pos) {
 		// Save state for null move
 		oldHash := pos.Hash
