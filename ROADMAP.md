@@ -98,6 +98,7 @@
 - [x] Quiescence search (kontynuacja przeszukiwania dla bić)
 - [x] Iterative deepening
 - [x] Transposition table
+- [x] Null Move Pruning (R=2, z zabezpieczeniem przed zugzwangiem)
 
 ## ✅ Iteracja 13: Time Management (podstawowy)
 - [x] Iterative Deepening (pogłębianie przeszukiwania: 1, 2, 3...)

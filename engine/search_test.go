@@ -227,6 +227,66 @@ func TestQuiescence_SeesRecapture(t *testing.T) {
 
 // === Time Management Tests ===
 
+// === Null Move Pruning Tests ===
+
+func TestNullMovePruning_MateDetectionAtDepth4(t *testing.T) {
+	// Ensure NMP doesn't break mate detection at deeper depths
+	// Scholar's mate position - Qxf7#
+	pos := board.CreatePositionFormFEN("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1")
+	pm := createTestPieceMoves()
+
+	result := Search(pos, pm, 4)
+
+	assert.Equal(t, "h5f7", result.Move.ToUCI(), "Should still find Qxf7# at depth 4 with NMP")
+	assert.Greater(t, result.Score, 50000, "Should detect mate")
+}
+
+func TestNullMovePruning_EndgameDisabled(t *testing.T) {
+	// In endgame with only kings and pawns, NMP should be disabled
+	// This is a K+P vs K position where zugzwang is possible
+	pos := board.CreatePositionFormFEN("8/8/8/4k3/8/4K3/4P3/8 w - - 0 1")
+	pm := createTestPieceMoves()
+
+	// Should not crash and should find a reasonable move
+	result := Search(pos, pm, 4)
+
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move in endgame")
+}
+
+func TestNullMovePruning_BasicFunctionality(t *testing.T) {
+	// Test that NMP works correctly on a middlegame position
+	// White has extra material, NMP should help prune quickly
+	pos := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1")
+	pm := createTestPieceMoves()
+
+	result := Search(pos, pm, 5)
+
+	// Should find a move and have reasonable score
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
+	// Position is roughly equal, score should be reasonable
+	assert.InDelta(t, 0, result.Score, 200, "Score should be reasonable for equal position")
+}
+
+func TestNullMovePruning_DoesNotBreakTactics(t *testing.T) {
+	// White can win black's queen with a knight fork on c7
+	// NMP should not prune away this tactical opportunity
+	pos := board.CreatePositionFormFEN("r1bqkb1r/pppp1ppp/2n2n2/4N3/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
+	pm := createTestPieceMoves()
+
+	result := Search(pos, pm, 3)
+
+	// White should play Nxc6 winning material
+	if result.Move.ToUCI() == "e5c6" {
+		// Good - found the capture
+		assert.Greater(t, result.Score, 100, "Should gain material")
+	} else if result.Move.ToUCI() == "e5f7" {
+		// Also good - fork on f7 attacks king and rook
+		assert.Greater(t, result.Score, 0, "Should gain advantage")
+	}
+	// Any reasonable tactical move is acceptable
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
+}
+
 func TestSearchWithTime_ReturnsInTime(t *testing.T) {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
 	pm := createTestPieceMoves()

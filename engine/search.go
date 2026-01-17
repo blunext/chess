@@ -10,9 +10,16 @@ import (
 )
 
 const (
-	infinity  = 1000000
-	mateScore = 100000
+	infinity          = 1000000
+	mateScore         = 100000
+	nullMoveReduction = 2 // Depth reduction for null move pruning
 )
+
+// isEndgame returns true if position has only kings and pawns (zugzwang risk)
+// In such positions, null move pruning can be dangerous
+func isEndgame(pos *board.Position) bool {
+	return pos.Queens == 0 && pos.Rooks == 0 && pos.Bishops == 0 && pos.Knights == 0
+}
 
 // Piece values for move ordering (MVV-LVA)
 var pieceValues = map[board.Piece]int{
@@ -126,7 +133,7 @@ func searchRootDepth(pos board.Position, pieceMoves board.PieceMoves, depth int,
 		bestScore = -infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta, ctx)
+			score := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta, true, ctx)
 			pos.UnmakeMove(move, undo)
 
 			if ctx.stopped.Load() {
@@ -145,7 +152,7 @@ func searchRootDepth(pos board.Position, pieceMoves board.PieceMoves, depth int,
 		bestScore = infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta, ctx)
+			score := alphaBeta(&pos, pieceMoves, depth-1, alpha, beta, true, ctx)
 			pos.UnmakeMove(move, undo)
 
 			if ctx.stopped.Load() {
@@ -168,7 +175,8 @@ func searchRootDepth(pos board.Position, pieceMoves board.PieceMoves, depth int,
 // alphaBeta returns the evaluation score using alpha-beta pruning.
 // Alpha = best score the maximizer (white) can guarantee
 // Beta = best score the minimizer (black) can guarantee
-func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alpha, beta int, ctx *SearchContext) int {
+// nullMoveAllowed prevents consecutive null moves
+func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alpha, beta int, nullMoveAllowed bool, ctx *SearchContext) int {
 	// Increment node counter and check timeout every 2048 nodes
 	ctx.nodes++
 	if ctx.nodes&2047 == 0 && ctx.checkTimeout() {
@@ -208,6 +216,33 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		}
 	}
 
+	// Null Move Pruning
+	// Idea: if we can skip our move and still beat beta, the position is so good
+	// that we can prune. Skip if: in check, depth too shallow, endgame (zugzwang), or just did null move
+	inCheck := pos.IsInCheck()
+	if nullMoveAllowed && depth >= 3 && !inCheck && !isEndgame(pos) {
+		// Save state for null move
+		oldHash := pos.Hash
+		oldEnPassant := pos.EnPassant
+
+		// Make null move (flip side to move, clear en passant, update hash)
+		pos.WhiteMove = !pos.WhiteMove
+		pos.EnPassant = 0
+		pos.Hash ^= board.HashSide()
+
+		// Search with reduced depth and zero window
+		nullScore := -alphaBeta(pos, pieceMoves, depth-1-nullMoveReduction, -beta, -beta+1, false, ctx)
+
+		// Unmake null move
+		pos.WhiteMove = !pos.WhiteMove
+		pos.EnPassant = oldEnPassant
+		pos.Hash = oldHash
+
+		if nullScore >= beta {
+			return beta // Null move cutoff
+		}
+	}
+
 	moves := pos.GenerateLegalMoves(pieceMoves)
 
 	// Put TT move first if available
@@ -244,7 +279,7 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		bestScore = -infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, ctx)
+			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, true, ctx)
 			pos.UnmakeMove(move, undo)
 
 			if ctx.stopped.Load() {
@@ -266,7 +301,7 @@ func alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, depth int, alph
 		bestScore = infinity
 		for _, move := range moves {
 			undo := pos.MakeMove(move)
-			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, ctx)
+			score := alphaBeta(pos, pieceMoves, depth-1, alpha, beta, true, ctx)
 			pos.UnmakeMove(move, undo)
 
 			if ctx.stopped.Load() {

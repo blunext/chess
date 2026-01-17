@@ -103,8 +103,9 @@ func TestTT_ImprovesIterativeDeepening(t *testing.T) {
 	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
 }
 
-// Benchmark search with and without TT
-func BenchmarkSearch_WithTT(b *testing.B) {
+// Benchmark search with and without TT at fixed depth
+// This measures actual speedup from TT by comparing nodes at same depth
+func BenchmarkSearch_FixedDepth_WithTT(b *testing.B) {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
 	pm := createTestPieceMoves()
 	InitTT(64) // 64 MB TT
@@ -112,11 +113,11 @@ func BenchmarkSearch_WithTT(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		TT.Clear()
-		SearchWithTime(pos, pm, 200*time.Millisecond)
+		Search(pos, pm, 4) // Fixed depth 4
 	}
 }
 
-func BenchmarkSearch_WithoutTT(b *testing.B) {
+func BenchmarkSearch_FixedDepth_WithoutTT(b *testing.B) {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
 	pm := createTestPieceMoves()
 
@@ -126,7 +127,7 @@ func BenchmarkSearch_WithoutTT(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		SearchWithTime(pos, pm, 200*time.Millisecond)
+		Search(pos, pm, 4) // Fixed depth 4
 	}
 
 	b.StopTimer()
