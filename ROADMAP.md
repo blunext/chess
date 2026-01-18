@@ -85,7 +85,7 @@
 ## Iteracja 11: Ocena pozycji
 - [x] Materiał (wartości figur: P=100, N=320, B=330, R=500, Q=900)
 - [x] Piece-Square Tables (PST)
-- [ ] Struktura pionów (zdwojone, izolowane, przechodzące)
+- [x] Struktura pionów (zdwojone, izolowane, przechodzące)
 - [ ] Aktywność figur (mobilność)
 - [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej
 

@@ -98,8 +98,19 @@ const (
 	NoQueensDivisor      = 4  // reduce king safety importance in endgame
 )
 
-// File masks for king safety calculations
+// Pawn Structure constants
+const (
+	DoubledPawnPenalty  = 20 // penalty per doubled pawn
+	IsolatedPawnPenalty = 15 // penalty per isolated pawn
+	PassedPawnBonus     = 20 // base bonus for passed pawn
+	PassedPawnRankBonus = 10 // additional bonus per rank advanced
+)
+
+// File masks for king safety and pawn structure calculations
 var fileMasks [8]board.Bitboard
+
+// Adjacent file masks for isolated pawn detection
+var adjacentFileMasks [8]board.Bitboard
 
 func init() {
 	// Initialize file masks (columns a-h)
@@ -109,6 +120,18 @@ func init() {
 			mask |= board.Bitboard(1) << (r*8 + f)
 		}
 		fileMasks[f] = mask
+	}
+
+	// Initialize adjacent file masks
+	for f := 0; f < 8; f++ {
+		var mask board.Bitboard
+		if f > 0 {
+			mask |= fileMasks[f-1]
+		}
+		if f < 7 {
+			mask |= fileMasks[f+1]
+		}
+		adjacentFileMasks[f] = mask
 	}
 }
 
@@ -125,7 +148,140 @@ func Evaluate(pos board.Position) int {
 	whiteKingSafety := kingSafety(pos, true)
 	blackKingSafety := kingSafety(pos, false)
 
-	return (white + whitePST + whiteKingSafety) - (black + blackPST + blackKingSafety)
+	// Pawn Structure
+	whitePawnStructure := pawnStructure(pos, true)
+	blackPawnStructure := pawnStructure(pos, false)
+
+	return (white + whitePST + whiteKingSafety + whitePawnStructure) - (black + blackPST + blackKingSafety + blackPawnStructure)
+}
+
+// pawnStructure evaluates pawn structure for a color
+func pawnStructure(pos board.Position, isWhite bool) int {
+	var ourPawns, enemyPawns board.Bitboard
+	if isWhite {
+		ourPawns = pos.Pawns & pos.White
+		enemyPawns = pos.Pawns & pos.Black
+	} else {
+		ourPawns = pos.Pawns & pos.Black
+		enemyPawns = pos.Pawns & pos.White
+	}
+
+	score := 0
+
+	// Doubled pawns: more than one pawn on the same file
+	score += doubledPawns(ourPawns)
+
+	// Isolated pawns: pawns with no friendly pawns on adjacent files
+	score += isolatedPawns(ourPawns)
+
+	// Passed pawns: pawns with no enemy pawns blocking or attacking
+	score += passedPawns(ourPawns, enemyPawns, isWhite)
+
+	return score
+}
+
+// doubledPawns returns penalty for doubled pawns
+func doubledPawns(pawns board.Bitboard) int {
+	penalty := 0
+	for f := 0; f < 8; f++ {
+		pawnsOnFile := pawns & fileMasks[f]
+		count := popCount(pawnsOnFile)
+		if count > 1 {
+			// Penalty for each extra pawn on the file
+			penalty -= (count - 1) * DoubledPawnPenalty
+		}
+	}
+	return penalty
+}
+
+// isolatedPawns returns penalty for isolated pawns
+func isolatedPawns(pawns board.Bitboard) int {
+	penalty := 0
+	tempPawns := pawns
+	for tempPawns != 0 {
+		sq := bitScanForward(tempPawns)
+		file := sq & 7
+
+		// Check if there are any friendly pawns on adjacent files
+		friendlyOnAdjacent := pawns & adjacentFileMasks[file]
+		if friendlyOnAdjacent == 0 {
+			penalty -= IsolatedPawnPenalty
+		}
+		tempPawns &= tempPawns - 1
+	}
+	return penalty
+}
+
+// passedPawns returns bonus for passed pawns
+func passedPawns(ourPawns, enemyPawns board.Bitboard, isWhite bool) int {
+	bonus := 0
+	tempPawns := ourPawns
+	for tempPawns != 0 {
+		sq := bitScanForward(tempPawns)
+		file := sq & 7
+		rank := sq >> 3
+
+		if isPassedPawn(sq, file, rank, enemyPawns, isWhite) {
+			bonus += PassedPawnBonus
+			// Additional bonus based on how advanced the pawn is
+			if isWhite {
+				bonus += rank * PassedPawnRankBonus // rank 2-7 -> 20-70 extra
+			} else {
+				bonus += (7 - rank) * PassedPawnRankBonus // rank 6-1 -> 10-60 extra
+			}
+		}
+		tempPawns &= tempPawns - 1
+	}
+	return bonus
+}
+
+// isPassedPawn checks if a pawn has no enemy pawns blocking or attacking its path
+func isPassedPawn(sq, file, rank int, enemyPawns board.Bitboard, isWhite bool) bool {
+	// Create a mask of squares that enemy pawns would block this pawn
+	var blockingMask board.Bitboard
+
+	// Include the file itself and adjacent files
+	blockingMask = fileMasks[file]
+	if file > 0 {
+		blockingMask |= fileMasks[file-1]
+	}
+	if file < 7 {
+		blockingMask |= fileMasks[file+1]
+	}
+
+	// Mask to only ranks ahead of the pawn
+	if isWhite {
+		// For white, block ranks above the pawn (rank+1 to 7)
+		for r := rank + 1; r < 8; r++ {
+			for f := 0; f < 8; f++ {
+				if blockingMask&(board.Bitboard(1)<<(r*8+f)) != 0 {
+					// Keep this square in blocking mask
+				} else {
+					// Not in our files of interest
+				}
+			}
+		}
+		// Create rank mask for ranks ahead
+		var aheadMask board.Bitboard
+		for r := rank + 1; r < 8; r++ {
+			for f := 0; f < 8; f++ {
+				aheadMask |= board.Bitboard(1) << (r*8 + f)
+			}
+		}
+		blockingMask &= aheadMask
+	} else {
+		// For black, block ranks below the pawn (0 to rank-1)
+		var aheadMask board.Bitboard
+		for r := 0; r < rank; r++ {
+			for f := 0; f < 8; f++ {
+				aheadMask |= board.Bitboard(1) << (r*8 + f)
+			}
+		}
+		blockingMask &= aheadMask
+	}
+
+	// If no enemy pawns in the blocking area, it's a passed pawn
+	return (enemyPawns & blockingMask) == 0
 }
 
 // kingSafety evaluates king safety for the given color

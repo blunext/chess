@@ -253,3 +253,111 @@ func TestKingSafety_Queensidecastle(t *testing.T) {
 	// With intact pawns on a2,b2,c2
 	assert.GreaterOrEqual(t, ks, -50, "Queenside castled king with shield should not be heavily penalized")
 }
+
+// === Pawn Structure Tests ===
+
+func TestPawnStructure_DoubledPawns(t *testing.T) {
+	// White has doubled pawns on e-file (e2 and e4)
+	doubled := board.CreatePositionFormFEN("4k3/8/8/8/4P3/8/4P3/4K3 w - - 0 1")
+
+	penalty := doubledPawns(doubled.Pawns & doubled.White)
+
+	// Should have penalty for one doubled pawn
+	assert.Equal(t, -DoubledPawnPenalty, penalty, "Doubled pawns should have penalty")
+}
+
+func TestPawnStructure_TriplePawns(t *testing.T) {
+	// White has tripled pawns on e-file (e2, e3, e4)
+	tripled := board.CreatePositionFormFEN("4k3/8/8/8/4P3/4P3/4P3/4K3 w - - 0 1")
+
+	penalty := doubledPawns(tripled.Pawns & tripled.White)
+
+	// Should have penalty for two extra pawns
+	assert.Equal(t, -2*DoubledPawnPenalty, penalty, "Tripled pawns should have 2x penalty")
+}
+
+func TestPawnStructure_NoDoubledPawns(t *testing.T) {
+	// White has pawns on different files
+	noDoubled := board.CreatePositionFormFEN("4k3/8/8/8/3PP3/8/8/4K3 w - - 0 1")
+
+	penalty := doubledPawns(noDoubled.Pawns & noDoubled.White)
+
+	assert.Equal(t, 0, penalty, "No doubled pawns should have no penalty")
+}
+
+func TestPawnStructure_IsolatedPawn(t *testing.T) {
+	// White has isolated pawn on a-file (no pawns on b-file)
+	isolated := board.CreatePositionFormFEN("4k3/8/8/8/P7/8/4P3/4K3 w - - 0 1")
+
+	penalty := isolatedPawns(isolated.Pawns & isolated.White)
+
+	// a-pawn is isolated (no pawn on b-file), e-pawn is also isolated (no pawns on d or f files)
+	assert.Equal(t, -2*IsolatedPawnPenalty, penalty, "Isolated pawns should have penalty")
+}
+
+func TestPawnStructure_ConnectedPawns(t *testing.T) {
+	// White has connected pawns on d and e files
+	connected := board.CreatePositionFormFEN("4k3/8/8/8/3PP3/8/8/4K3 w - - 0 1")
+
+	penalty := isolatedPawns(connected.Pawns & connected.White)
+
+	assert.Equal(t, 0, penalty, "Connected pawns should have no isolated penalty")
+}
+
+func TestPawnStructure_PassedPawn(t *testing.T) {
+	// White has passed pawn on e5 (no black pawns on d,e,f files ahead)
+	passed := board.CreatePositionFormFEN("4k3/8/8/4P3/8/8/8/4K3 w - - 0 1")
+
+	bonus := passedPawns(passed.Pawns&passed.White, passed.Pawns&passed.Black, true)
+
+	// Should have bonus for passed pawn (base + rank bonus)
+	assert.Greater(t, bonus, 0, "Passed pawn should have bonus")
+	// e5 is rank 4 (0-indexed), so bonus = 20 + 4*10 = 60
+	expectedBonus := PassedPawnBonus + 4*PassedPawnRankBonus
+	assert.Equal(t, expectedBonus, bonus, "Passed pawn bonus should match expected")
+}
+
+func TestPawnStructure_BlockedPawn(t *testing.T) {
+	// White pawn on e4 is blocked by black pawn on e5
+	blocked := board.CreatePositionFormFEN("4k3/8/8/4p3/4P3/8/8/4K3 w - - 0 1")
+
+	bonus := passedPawns(blocked.Pawns&blocked.White, blocked.Pawns&blocked.Black, true)
+
+	assert.Equal(t, 0, bonus, "Blocked pawn should not be passed")
+}
+
+func TestPawnStructure_PassedPawnAdvanced(t *testing.T) {
+	// White has passed pawn on e7 (very advanced!)
+	advanced := board.CreatePositionFormFEN("4k3/4P3/8/8/8/8/8/4K3 w - - 0 1")
+
+	bonus := passedPawns(advanced.Pawns&advanced.White, advanced.Pawns&advanced.Black, true)
+
+	// e7 is rank 6, so bonus = 20 + 6*10 = 80
+	expectedBonus := PassedPawnBonus + 6*PassedPawnRankBonus
+	assert.Equal(t, expectedBonus, bonus, "Advanced passed pawn should have large bonus")
+}
+
+func TestPawnStructure_BlackPassedPawn(t *testing.T) {
+	// Black has passed pawn on e2 (very advanced for black!)
+	blackPassed := board.CreatePositionFormFEN("4k3/8/8/8/8/8/4p3/4K3 w - - 0 1")
+
+	bonus := passedPawns(blackPassed.Pawns&blackPassed.Black, blackPassed.Pawns&blackPassed.White, false)
+
+	// e2 is rank 1, for black bonus = 20 + (7-1)*10 = 80
+	expectedBonus := PassedPawnBonus + 6*PassedPawnRankBonus
+	assert.Equal(t, expectedBonus, bonus, "Black advanced passed pawn should have large bonus")
+}
+
+func TestPawnStructure_PawnStructureFunction(t *testing.T) {
+	// Test the main pawnStructure function combining all factors
+	// White has: doubled pawns on e-file, but one is passed
+	pos := board.CreatePositionFormFEN("4k3/8/8/4P3/8/8/4P3/4K3 w - - 0 1")
+
+	whitePawnScore := pawnStructure(pos, true)
+	blackPawnScore := pawnStructure(pos, false)
+
+	// White should have net positive (passed pawn bonus > doubled penalty)
+	// But both pawns are isolated (no pawns on d or f files)
+	// So: doubled (-20) + isolated (-15*2 = -30) + passed (20 + 40 for e5) = +10
+	assert.Less(t, blackPawnScore, whitePawnScore, "White with passed pawn should score better")
+}
