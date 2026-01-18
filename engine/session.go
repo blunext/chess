@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 // Session holds per-game state that should be isolated between concurrent games.
 // This allows running multiple games in parallel using separate goroutines.
 type Session struct {
-	TT      *TranspositionTable
-	bookRng *rand.Rand
+	TT          *TranspositionTable
+	bookRng     *rand.Rand
+	debugLogger *Logger // Optional debug logger for detailed search info
 }
 
 // NewSession creates a new game session with its own transposition table.
@@ -34,6 +36,11 @@ func (s *Session) Clear() {
 // ResizeTT creates a new transposition table with the given size.
 func (s *Session) ResizeTT(sizeMB int) {
 	s.TT = NewTranspositionTable(sizeMB)
+}
+
+// SetDebugLogger sets an optional debug logger for detailed search information.
+func (s *Session) SetDebugLogger(logger *Logger) {
+	s.debugLogger = logger
 }
 
 // Search finds the best move using alpha-beta pruning with fixed depth.
@@ -69,6 +76,32 @@ func (s *Session) SearchWithBook(pos board.Position, pieceMoves board.PieceMoves
 
 // SearchWithTime performs iterative deepening search with time limit.
 func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves, timeLimit time.Duration) SearchResultTimed {
+	// Generate moves early for debug logging
+	allMoves := pos.GenerateLegalMoves(pieceMoves)
+	sortMoves(allMoves)
+
+	// Debug log: search start with context info
+	if s.debugLogger != nil {
+		firstMove := ""
+		if len(allMoves) > 0 {
+			firstMove = allMoves[0].ToUCI()
+		}
+		ttSize := 0
+		if s.TT != nil {
+			ttSize = s.TT.SizeMB()
+		}
+		s.debugLogger.Log(LogInfo{
+			Timestamp: time.Now(),
+			FEN:       pos.ToFEN(),
+			Move:      "START",
+			Source:    "Debug",
+			Score:     fmt.Sprintf("moves=%d first=%s TT=%dMB", len(allMoves), firstMove, ttSize),
+			Depth:     0,
+			Nodes:     0,
+			Duration:  timeLimit,
+		})
+	}
+
 	// Try opening book first
 	if OpeningBook != nil {
 		polyHash := book.PolyglotHash(pos)
@@ -76,6 +109,18 @@ func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves
 			legalMoves := pos.GenerateLegalMoves(pieceMoves)
 			for _, m := range legalMoves {
 				if m.From == bookMove.From && m.To == bookMove.To && m.Promotion == bookMove.Promotion {
+					if s.debugLogger != nil {
+						s.debugLogger.Log(LogInfo{
+							Timestamp: time.Now(),
+							FEN:       pos.ToFEN(),
+							Move:      "BOOK:" + m.ToUCI(),
+							Source:    "Debug",
+							Score:     "book",
+							Depth:     0,
+							Nodes:     0,
+							Duration:  0,
+						})
+					}
 					return SearchResultTimed{Move: m, FromBook: true}
 				}
 			}
@@ -84,15 +129,55 @@ func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves
 
 	ctx := NewSearchContext(timeLimit)
 	var bestResult SearchResultTimed
+	var prevMove board.Move // Track previous best move to detect changes
 
 	// Iterative deepening: search depth 1, 2, 3, ... until time runs out
 	for depth := 1; depth <= 100; depth++ {
 		result := s.searchRootDepth(pos, pieceMoves, depth, ctx)
 
+		// Debug log: iteration result
+		if s.debugLogger != nil {
+			status := "OK"
+			if ctx.stopped.Load() {
+				status = "STOPPED"
+			}
+			// Check if best move changed from previous depth
+			moveChanged := depth > 1 && result.Move.ToUCI() != prevMove.ToUCI()
+			changeInfo := ""
+			if moveChanged {
+				changeInfo = fmt.Sprintf(" CHANGED(%s->%s)", prevMove.ToUCI(), result.Move.ToUCI())
+			}
+			s.debugLogger.Log(LogInfo{
+				Timestamp: time.Now(),
+				FEN:       pos.ToFEN(),
+				Move:      "D" + fmt.Sprint(depth) + ":" + result.Move.ToUCI() + changeInfo,
+				Source:    status,
+				Score:     fmt.Sprintf("%+d", result.Score),
+				Depth:     depth,
+				Nodes:     ctx.nodes,
+				Duration:  ctx.Elapsed(),
+			})
+		}
+
 		// If search was stopped mid-way, don't use partial results
 		if ctx.stopped.Load() && depth > 1 {
+			if s.debugLogger != nil {
+				s.debugLogger.Log(LogInfo{
+					Timestamp: time.Now(),
+					FEN:       pos.ToFEN(),
+					Move:      "REJECT",
+					Source:    "Debug",
+					Score:     fmt.Sprintf("d%d_stopped prev=%s", depth, prevMove.ToUCI()),
+					Depth:     depth,
+					Nodes:     ctx.nodes,
+					Duration:  ctx.Elapsed(),
+				})
+			}
 			break
 		}
+
+		// Track previous move before updating
+		prevMove = result.Move
 
 		// Update best result
 		bestResult = SearchResultTimed{
@@ -103,16 +188,68 @@ func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves
 			Time:  ctx.Elapsed(),
 		}
 
+		// Debug log: accepted this depth
+		if s.debugLogger != nil && depth > 1 {
+			s.debugLogger.Log(LogInfo{
+				Timestamp: time.Now(),
+				FEN:       pos.ToFEN(),
+				Move:      "ACCEPT",
+				Source:    "Debug",
+				Score:     fmt.Sprintf("d%d=%s", depth, result.Move.ToUCI()),
+				Depth:     depth,
+				Nodes:     ctx.nodes,
+				Duration:  ctx.Elapsed(),
+			})
+		}
+
 		// If we found a mate, no need to search deeper
 		if result.Score > mateScore-100 || result.Score < -mateScore+100 {
+			if s.debugLogger != nil {
+				s.debugLogger.Log(LogInfo{
+					Timestamp: time.Now(),
+					FEN:       pos.ToFEN(),
+					Move:      "MATE",
+					Source:    "Debug",
+					Score:     fmt.Sprintf("%+d", result.Score),
+					Depth:     depth,
+					Nodes:     ctx.nodes,
+					Duration:  ctx.Elapsed(),
+				})
+			}
 			break
 		}
 
 		// Check if we have time for another iteration
 		// Heuristic: next depth takes ~3-4x longer
 		if ctx.Elapsed()*4 >= timeLimit {
+			if s.debugLogger != nil {
+				s.debugLogger.Log(LogInfo{
+					Timestamp: time.Now(),
+					FEN:       pos.ToFEN(),
+					Move:      "TIMECUT",
+					Source:    "Debug",
+					Score:     fmt.Sprintf("%.1fx", float64(ctx.Elapsed())*4/float64(timeLimit)),
+					Depth:     depth,
+					Nodes:     ctx.nodes,
+					Duration:  ctx.Elapsed(),
+				})
+			}
 			break
 		}
+	}
+
+	// Debug log: final result
+	if s.debugLogger != nil {
+		s.debugLogger.Log(LogInfo{
+			Timestamp: time.Now(),
+			FEN:       pos.ToFEN(),
+			Move:      "FINAL:" + bestResult.Move.ToUCI(),
+			Source:    "Debug",
+			Score:     fmt.Sprintf("%+d", bestResult.Score),
+			Depth:     bestResult.Depth,
+			Nodes:     bestResult.Nodes,
+			Duration:  bestResult.Time,
+		})
 	}
 
 	return bestResult

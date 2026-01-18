@@ -33,11 +33,19 @@ func Start() {
 	// For now, let's use the current working directory but print it out
 	cwd, _ := os.Getwd()
 	logPath := cwd + "/game.log"
+	debugLogPath := cwd + "/debug.log"
 
 	l, err := engine.NewLogger(logPath)
 	if err != nil {
 		// Try fallback to just filename if permission issues
 		l, _ = engine.NewLogger("game.log")
+	}
+
+	// Create debug logger
+	debugLogger, err := engine.NewLogger(debugLogPath)
+	if err != nil {
+		// Try fallback
+		debugLogger, _ = engine.NewLogger("debug.log")
 	}
 
 	uci := &UCI{
@@ -48,10 +56,19 @@ func Start() {
 		firstMove:  true,
 	}
 
+	// Set debug logger on session
+	if debugLogger != nil {
+		uci.session.SetDebugLogger(debugLogger)
+		defer debugLogger.Close()
+	}
+
 	if uci.logger != nil {
 		defer uci.logger.Close()
 		// Print info to stdout so user might see it in bot logs
 		fmt.Printf("info string Logging to %s\n", logPath)
+		if debugLogger != nil {
+			fmt.Printf("info string Debug logging to %s\n", debugLogPath)
+		}
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
