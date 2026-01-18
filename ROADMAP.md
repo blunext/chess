@@ -274,11 +274,11 @@
 - [x] Stand-pat evaluation
 
 ### Ulepszenia (priorytetyzowane)
-- [ ] **Mate threat detection** - wykrywanie groźby mata w 1 przed zakończeniem quiescence
+- [x] **Mate threat detection** - wykrywanie groźby mata w 1 przed zakończeniem quiescence
   - Sprawdź czy przeciwnik ma mata w 1 ruch
   - Jeśli tak, kontynuuj przeszukiwanie (nie kończ na stand-pat)
   - Rozwiązuje bug: Qa2 (silnik nie widział Nf5 → Qxg7#)
-- [ ] **Check evasion** - kontynuuj gdy w szachu (nie kończ quiescence)
+- [x] **Check evasion** - kontynuuj gdy w szachu (nie kończ quiescence)
 - [ ] **Delta pruning** - obcinaj bicia które nie mogą poprawić alpha
 
 ## Search Extensions (rozszerzenia)
