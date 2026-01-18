@@ -105,58 +105,58 @@ var tacticalPositions = []TacticalPosition{
 	// 	// EPD: bm Rxb2 - Rook captures on b2
 	// 	Name:      "WAC.002",
 	// 	FEN:       "8/7p/5k2/5p2/p1p2P2/Pr1pPK2/1P1R3P/8 b - - 0 1",
-	// 	BestMoves: []string{"b3b2"}, // Rxb2 - engine finds b3b8 instead
+	// 	BestMoves: []string{"b3b2"}, // Rxb2 - engine finds c4c3 instead
 	// 	MinDepth:  4,
 	// 	Category:  "wac",
 	// },
-	// {
-	// 	// EPD: bm Rg3 - Rook to g3
-	// 	Name:      "WAC.003",
-	// 	FEN:       "5rk1/1ppb3p/p1pb4/6q1/3P1p1r/2P1R2P/PP1BQ1P1/5RKN w - - 0 1",
-	// 	BestMoves: []string{"e3g3"}, // Rg3 - engine finds e2c4 instead
-	// 	MinDepth:  3,
-	// 	Category:  "wac",
-	// },
-	// {
-	// 	// EPD: bm Ne3 - Knight to e3 (fork)
-	// 	Name:      "WAC.007",
-	// 	FEN:       "rnbqkb1r/pppp1ppp/8/4P3/6n1/7P/PPPNPPP1/R1BQKBNR b KQkq - 0 1",
-	// 	BestMoves: []string{"g4e3"}, // Ne3 - engine finds g4e5 instead
-	// 	MinDepth:  3,
-	// 	Category:  "wac",
-	// },
+	{
+		// EPD: bm Rg3 - Rook to g3
+		Name:      "WAC.003",
+		FEN:       "5rk1/1ppb3p/p1pb4/6q1/3P1p1r/2P1R2P/PP1BQ1P1/5RKN w - - 0 1",
+		BestMoves: []string{"e3g3"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		// EPD: bm Ne3 - Knight to e3 (fork)
+		Name:      "WAC.007",
+		FEN:       "rnbqkb1r/pppp1ppp/8/4P3/6n1/7P/PPPNPPP1/R1BQKBNR b KQkq - 0 1",
+		BestMoves: []string{"g4e3"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
 	// {
 	// 	// EPD: bm Bh2+ - Bishop check on h2
 	// 	Name:      "WAC.009",
 	// 	FEN:       "3q1rk1/p4pp1/2pb3p/3p4/6Pr/1PNQ4/P1PB1PP1/4RRK1 b - - 0 1",
-	// 	BestMoves: []string{"d6h2"}, // Bh2+ (bishop is on d6, not c6!) - engine finds d8f6
+	// 	BestMoves: []string{"d6h2"}, // Bh2+ - engine finds h4g4 instead
 	// 	MinDepth:  4,
 	// 	Category:  "wac",
 	// },
-	// {
-	// 	// EPD: bm Ba2/Nf7 - two acceptable moves
-	// 	Name:      "WAC.022",
-	// 	FEN:       "r1bqk2r/ppp1nppp/4p3/n5N1/2BPp3/P1P5/2P2PPP/R1BQK2R w KQkq - 0 1",
-	// 	BestMoves: []string{"c4a2", "g5f7"}, // engine finds c4b5 instead
-	// 	MinDepth:  3,
-	// 	Category:  "wac",
-	// },
-	// {
-	// 	// EPD: bm Rc8 - Rook to c8
-	// 	Name:      "WAC.040",
-	// 	FEN:       "3r1r1k/1p4pp/p4p2/8/1PQR4/6Pq/P3PP2/2R3K1 b - - 0 1",
-	// 	BestMoves: []string{"d8c8"}, // Rc8 - engine finds d8d4 instead
-	// 	MinDepth:  3,
-	// 	Category:  "wac",
-	// },
-	// {
-	// 	// EPD: bm Bd4 - Bishop to d4
-	// 	Name:      "WAC.083",
-	// 	FEN:       "r5k1/1b1nqpbp/pp4p1/5P2/1PN5/4Q3/P5PP/1B2B1K1 b - - 0 1",
-	// 	BestMoves: []string{"g7d4"}, // Bd4 - engine finds e7e3 instead
-	// 	MinDepth:  3,
-	// 	Category:  "wac",
-	// },
+	{
+		// EPD: bm Ba2/Nf7 - two acceptable moves
+		Name:      "WAC.022",
+		FEN:       "r1bqk2r/ppp1nppp/4p3/n5N1/2BPp3/P1P5/2P2PPP/R1BQK2R w KQkq - 0 1",
+		BestMoves: []string{"c4a2", "g5f7"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		// EPD: bm Rc8 - Rook to c8
+		Name:      "WAC.040",
+		FEN:       "3r1r1k/1p4pp/p4p2/8/1PQR4/6Pq/P3PP2/2R3K1 b - - 0 1",
+		BestMoves: []string{"d8c8"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
+	{
+		// EPD: bm Bd4 - Bishop to d4
+		Name:      "WAC.083",
+		FEN:       "r5k1/1b1nqpbp/pp4p1/5P2/1PN5/4Q3/P5PP/1B2B1K1 b - - 0 1",
+		BestMoves: []string{"g7d4"},
+		MinDepth:  3,
+		Category:  "wac",
+	},
 
 	{
 		Name:      "WAC.004",
