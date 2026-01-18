@@ -231,6 +231,21 @@
 - [ ] **WAC.040**: Engine finds `d8d4`, expected `d8c8` (Rc8)
 - [ ] **WAC.083**: Engine finds `e7e3`, expected `g7d4` (Bd4)
 
+### Tactical Positions to Verify
+> Pozycje które wymagają ręcznej weryfikacji - czy FEN i oczekiwany ruch są poprawne?
+> Zakomentowane w `engine/tactical_test.go`
+
+- [ ] **Knight fork: King and Queen** - Nd5 NIE atakuje K na e8 ani Q na d8!
+  - FEN: `r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1`
+  - Nd5 atakuje: f6 (skoczek), b4 (goniec) - to nie jest royal fork
+  - Potrzeba: znaleźć prawdziwy royal fork (skoczek atakuje K i Q jednocześnie)
+
+#### Jak weryfikować pozycje taktyczne:
+1. Wczytaj FEN w lichess.org/editor lub chess.com/analysis
+2. Sprawdź czy oczekiwany ruch jest legalny
+3. Sprawdź czy ruch faktycznie realizuje opisaną taktykę (fork, pin, etc.)
+4. Zweryfikuj z silnikiem (Stockfish) czy to najlepszy ruch
+
 ### Search Determinism
 - [ ] Fixed-depth tests: ten sam depth = ten sam ruch i score
 - [ ] Benchmark positions z zapisanymi expected values

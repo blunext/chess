@@ -63,13 +63,15 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  2,
 		Category:  "fork",
 	},
-	{
-		Name:      "Knight fork: King and Queen",
-		FEN:       "r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1",
-		BestMoves: []string{"c3d5"},
-		MinDepth:  4, // increased from 2 - engine needs deeper search to see fork value
-		Category:  "fork",
-	},
+	// TODO: This position is NOT a King+Queen fork - Nd5 attacks f6 knight and b4 bishop, not K/Q
+	// Need to find a proper "royal fork" position - see ROADMAP.md
+	// {
+	// 	Name:      "Knight fork: King and Queen",
+	// 	FEN:       "r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1",
+	// 	BestMoves: []string{"c3d5"},
+	// 	MinDepth:  4,
+	// 	Category:  "fork",
+	// },
 
 	// === WIN MATERIAL: PINS ===
 	{
