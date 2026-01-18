@@ -493,14 +493,9 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 	// Check if we're in check - must search all evasions, not just captures
 	inCheck := pos.IsInCheck()
 
-	// Check for mate threat: can the side that JUST MOVED mate us in 1?
-	// This catches cases like Nf5 (after Qa2) where White threatens Qxg7#
-	// We only check this if we're about to use stand-pat cutoff
+	// Mate threat detection disabled - 22x performance overhead was too high.
+	// See ROADMAP.md for alternative approach (Mate Threat Extensions in main search).
 	opponentHasMateThreat := false
-	if !inCheck {
-		// Opponent is !pos.WhiteMove (the side that just moved)
-		opponentHasMateThreat = s.hasMateInOne(pos, pieceMoves, !pos.WhiteMove)
-	}
 
 	if pos.WhiteMove {
 		if standPat >= beta && !opponentHasMateThreat {

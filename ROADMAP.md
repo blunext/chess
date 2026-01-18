@@ -274,10 +274,9 @@
 - [x] Stand-pat evaluation
 
 ### Ulepszenia (priorytetyzowane)
-- [x] **Mate threat detection** - wykrywanie groźby mata w 1 przed zakończeniem quiescence
-  - Sprawdź czy przeciwnik ma mata w 1 ruch
-  - Jeśli tak, kontynuuj przeszukiwanie (nie kończ na stand-pat)
-  - Rozwiązuje bug: Qa2 (silnik nie widział Nf5 → Qxg7#)
+- [ ] ~~**Mate threat detection**~~ (wyłączone - 22x overhead, patrz Search Extensions)
+  - Implementacja w quiescence była zbyt kosztowna (hasMateInOne w każdym węźle)
+  - Alternatywa: Mate Threat Extensions w main search (patrz niżej)
 - [x] **Check evasion** - kontynuuj gdy w szachu (nie kończ quiescence)
 - [ ] **Delta pruning** - obcinaj bicia które nie mogą poprawić alpha
 
@@ -290,6 +289,9 @@
 - [ ] **Recapture Extensions** - +1 ply przy odbiciu na tym samym polu
 - [ ] **Passed Pawn Extensions** - +1 ply dla promocji pionów przechodzących
 - [ ] **Mate Threat Extensions** - +1 ply gdy przeciwnik grozi matem
+  - **Rekomendowane** zamiast mate detection w quiescence (22x mniejszy overhead)
+  - Sprawdź raz na węzeł w main search, nie w każdym węźle quiescence
+  - Użyj prostej heurystyki: czy ostatni ruch dał szach lub zaatakował króla?
 
 # Multi-Session Support (Iteracja 14b)
 

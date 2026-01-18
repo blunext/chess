@@ -411,3 +411,124 @@ func TestCheckExtension_CheckExtendsSearchDepth(t *testing.T) {
 	// With queen vs nothing, white is winning
 	assert.Greater(t, result.Score, 800, "Should recognize huge advantage")
 }
+
+// === Mate Threat Detection Tests ===
+
+func TestHasMateInOne_BackRankMate(t *testing.T) {
+	// Black King on g8 with pawns on f7,g7,h7 blocking escape
+	// White Rook on a1 can play Ra8# (back rank mate)
+	pos := board.CreatePositionFormFEN("6k1/5ppp/8/8/8/8/8/R3K3 b - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	// White (opponent of black) threatens mate in 1
+	hasThreat := session.hasMateInOne(&pos, pm, true) // true = white is opponent
+
+	assert.True(t, hasThreat, "Should detect back rank mate threat Ra8#")
+}
+
+func TestHasMateInOne_QueenMate(t *testing.T) {
+	// White Queen on h5, Black King on e8, f7 weak
+	// White threatens Qxf7# (scholar's mate style)
+	pos := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	hasThreat := session.hasMateInOne(&pos, pm, true)
+
+	assert.True(t, hasThreat, "Should detect Qxf7# threat")
+}
+
+func TestHasMateInOne_NoThreat(t *testing.T) {
+	// Starting position - no mate threats
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	hasThreat := session.hasMateInOne(&pos, pm, true)
+
+	assert.False(t, hasThreat, "No mate threat in starting position")
+}
+
+func TestHasMateInOne_SmotheredMate(t *testing.T) {
+	// Classic smothered mate setup:
+	// Black King on h8, Rook on g8, pawns on g7/h7
+	// White Knight on g5 threatens Nf7# (smothered mate)
+	pos := board.CreatePositionFormFEN("6rk/6pp/8/6N1/8/8/8/4K3 b - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	hasThreat := session.hasMateInOne(&pos, pm, true)
+
+	assert.True(t, hasThreat, "Should detect smothered mate threat Nf7#")
+}
+
+func TestHasMateInOne_AlmostMate(t *testing.T) {
+	// Position where opponent has checks but not mate
+	// King has escape square (pawn on e7 blocks Ra8 but King can go to d7/f7)
+	pos := board.CreatePositionFormFEN("4k3/4p3/8/8/8/8/8/R3K3 b - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	hasThreat := session.hasMateInOne(&pos, pm, true)
+
+	// King can escape to d7 or f7, so no immediate mate
+	assert.False(t, hasThreat, "King has escape squares, no mate in 1")
+}
+
+// === Check Evasion in Quiescence Tests ===
+
+func TestQuiescence_CheckEvasion_KingMoves(t *testing.T) {
+	// Black King in check, only escape is Kf8 (not a capture)
+	// Without check evasion, quiescence would only look at captures and miss Kf8
+	pos := board.CreatePositionFormFEN("4k3/8/5Q2/8/8/8/8/4K3 b - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	// Search should find an escape move, not crash or return bad score
+	result := session.SearchWithTime(pos, pm, 100*time.Millisecond)
+
+	// Black should escape, not get mated immediately
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find escape move")
+	// Score should not be mate (would be very negative for black)
+	assert.Greater(t, result.Score, -30000, "Should not be immediate mate")
+}
+
+func TestQuiescence_CheckEvasion_BlockingMove(t *testing.T) {
+	// Black in check, can block with a piece (not capture)
+	// Rook gives check, Bishop can block
+	pos := board.CreatePositionFormFEN("4k3/8/8/8/4b3/8/8/R3K3 b - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	result := session.SearchWithTime(pos, pm, 100*time.Millisecond)
+
+	// Black should find a defense
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find blocking or escape move")
+}
+
+func TestQuiescence_MateThreat_ContinuesSearch(t *testing.T) {
+	// Position from the a2b2 bug: Black should see Nf5 threatens Qxg7#
+	// and not just take stand-pat
+	pos := board.CreatePositionFormFEN("r1b2rk1/pp1p1ppp/8/2p2N2/8/2P1P1Q1/qP4P1/2K2R1R b - - 1 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	// Check that mate threat is detected
+	hasThreat := session.hasMateInOne(&pos, pm, true) // White threatens mate
+
+	assert.True(t, hasThreat, "Should detect Qxg7# threat after any Black move")
+}
+
+// === Performance Benchmarks ===
+
+func BenchmarkSearch_Depth4(b *testing.B) {
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+	pm := createTestPieceMoves()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		session := NewSession(64)
+		session.Search(pos, pm, 4)
+	}
+}
