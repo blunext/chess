@@ -152,3 +152,104 @@ func TestPST_BlackMirroring(t *testing.T) {
 	// e4 for white = e5 for black (both are rank 4 from their perspective)
 	assert.InDelta(t, whiteEval, -blackEval, 20, "Mirrored knight positions should have opposite scores")
 }
+
+// === King Safety Tests ===
+
+func TestKingSafety_CastledKingWithPawnShield(t *testing.T) {
+	// White king castled kingside with full pawn shield (f2,g2,h2)
+	pos := board.CreatePositionFormFEN("r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w - - 0 1")
+
+	whiteKS := kingSafety(pos, true)
+	blackKS := kingSafety(pos, false)
+
+	// Both have castled with intact pawn shields - should have similar scores
+	assert.InDelta(t, whiteKS, blackKS, 30, "Both castled kings with pawn shields should have similar safety")
+}
+
+func TestKingSafety_BrokenPawnShield(t *testing.T) {
+	// White king castled but g2 pawn is missing (g-file open)
+	brokenShield := board.CreatePositionFormFEN("r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/5NP1/PPPP1P1P/RNBQ1RK1 w - - 0 1")
+
+	// Compare with intact shield
+	intactShield := board.CreatePositionFormFEN("r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w - - 0 1")
+
+	brokenKS := kingSafety(brokenShield, true)
+	intactKS := kingSafety(intactShield, true)
+
+	// Broken shield should be worse (pawn on g3 instead of g2)
+	// Note: g3 is advanced, f2/h2 still intact
+	assert.LessOrEqual(t, brokenKS, intactKS, "Broken pawn shield should give lower score")
+}
+
+func TestKingSafety_UncastledKingPenalty(t *testing.T) {
+	// White king still in center (e1)
+	uncastled := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1")
+
+	// Castled position
+	castled := board.CreatePositionFormFEN("r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 1")
+
+	uncastledKS := kingSafety(uncastled, true)
+	castledKS := kingSafety(castled, true)
+
+	// Uncastled king should have worse safety
+	assert.Less(t, uncastledKS, castledKS, "Uncastled king should have worse safety than castled")
+}
+
+func TestKingSafety_OpenFileNearKing(t *testing.T) {
+	// King castled but h-file is completely open (no pawns)
+	openFile := board.CreatePositionFormFEN("r1bq1rk1/pppp1pp1/2n2n2/2b1p2p/2B1P3/5N2/PPPP1PP1/RNBQ1RK1 w - - 0 1")
+
+	ks := kingSafety(openFile, true)
+
+	// Should have penalty for open file
+	// Exact value depends on other factors, but should be negative overall
+	assert.Less(t, ks, 0, "Open file near king should result in negative safety score")
+}
+
+func TestKingSafety_EndgameScaling(t *testing.T) {
+	// Position without queens - king safety should be reduced
+	noQueens := board.CreatePositionFormFEN("r1b2rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNB2RK1 w - - 0 1")
+
+	// Position with queens
+	withQueens := board.CreatePositionFormFEN("r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w - - 0 1")
+
+	noQueensKS := kingSafety(noQueens, true)
+	withQueensKS := kingSafety(withQueens, true)
+
+	// Without queens, king safety should matter less
+	// The absolute value should be smaller
+	absNoQueens := noQueensKS
+	if absNoQueens < 0 {
+		absNoQueens = -absNoQueens
+	}
+	absWithQueens := withQueensKS
+	if absWithQueens < 0 {
+		absWithQueens = -absWithQueens
+	}
+
+	// Without enemy queen, king safety penalty/bonus is divided by 4
+	assert.LessOrEqual(t, absNoQueens, absWithQueens, "King safety should matter less without queens")
+}
+
+func TestKingSafety_PawnShieldFunction(t *testing.T) {
+	// Test pawnShield directly
+	// King on g1 with perfect shield (f2,g2,h2)
+	perfectShield := board.CreatePositionFormFEN("8/8/8/8/8/8/5PPP/6K1 w - - 0 1")
+	kingSq := 6 // g1
+
+	score := pawnShield(perfectShield, kingSq, true)
+
+	// Should have bonus for all three pawns
+	assert.Greater(t, score, 0, "Perfect pawn shield should give positive score")
+}
+
+func TestKingSafety_Queensidecastle(t *testing.T) {
+	// White king castled queenside (c1) with pawn shield (a2,b2,c2)
+	queenside := board.CreatePositionFormFEN("r3kbnr/ppp2ppp/2nqb3/3pp3/3PP3/2NQB3/PPP2PPP/2KR1BNR w kq - 0 1")
+
+	ks := kingSafety(queenside, true)
+
+	// Should still evaluate pawn shield for queenside castling
+	// With intact pawns on a2,b2,c2
+	assert.GreaterOrEqual(t, ks, -50, "Queenside castled king with shield should not be heavily penalized")
+}

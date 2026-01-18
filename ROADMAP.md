@@ -87,7 +87,36 @@
 - [x] Piece-Square Tables (PST)
 - [ ] Struktura pionów (zdwojone, izolowane, przechodzące)
 - [ ] Aktywność figur (mobilność)
-- [ ] Bezpieczeństwo króla
+- [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej
+
+### Bezpieczeństwo króla (King Safety)
+
+> **Cel:** Karanie pozycji z wystawionym królem, brakującą osłoną pionkową lub pod atakiem.
+
+#### Komponenty (od najprostszego):
+
+**1. Pawn Shield (osłona pionkowa)** ✅
+- [x] Bonus za pionki przed oroszowanym królem (+10 za 2 linię, +5 za 3 linię)
+- [x] Kara za brakujące pionki w osłonie (-25)
+- [x] Rozpoznawanie pozycji oroszowanej (król na g1/h1 lub a1/b1/c1)
+
+**2. Open Files Near King (otwarte linie)** ✅
+- [x] -25 za pół-otwartą linię obok króla
+- [x] -40 za pełną otwartą linię
+
+**3. Game Phase Scaling (skalowanie fazy gry)** ✅
+- [x] Redukcja king safety gdy brak hetmanów (dzielenie przez 4)
+
+**4. Uncastled King Penalty (nieoroszowany król)** ✅
+- [x] -50 kara za króla na kolumnach d/e w middlegame
+
+**5. King Tropism (opcjonalne - na później)**
+- [ ] Bonus za bliskość figur atakujących do króla przeciwnika
+- [ ] Wagi: Hetman (2x), Wieża (1x), Skoczek (1.5x), Goniec (1x)
+
+**6. Pawn Storm (opcjonalne - na później)**
+- [ ] Kara za pionki przeciwnika zbliżające się do naszego króla
+
 
 ## Iteracja 12: Search
 - [x] Minimax

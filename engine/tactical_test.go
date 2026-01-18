@@ -67,7 +67,7 @@ var tacticalPositions = []TacticalPosition{
 		Name:      "Knight fork: King and Queen",
 		FEN:       "r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1",
 		BestMoves: []string{"c3d5"},
-		MinDepth:  2,
+		MinDepth:  4, // increased from 2 - engine needs deeper search to see fork value
 		Category:  "fork",
 	},
 

@@ -87,6 +87,31 @@ var kingMiddlegamePST = [64]int{
 	-30, -40, -40, -50, -50, -40, -40, -30, // rank 8
 }
 
+// King Safety constants
+const (
+	PawnShieldBonus      = 10 // per intact shield pawn
+	PawnShieldAdvanced   = 5  // per shield pawn on 3rd rank
+	MissingShieldPenalty = 25 // per missing shield pawn
+	SemiOpenFilePenalty  = 25 // semi-open file near king
+	OpenFilePenalty      = 40 // fully open file near king
+	UncastledKingPenalty = 50 // king stuck in center
+	NoQueensDivisor      = 4  // reduce king safety importance in endgame
+)
+
+// File masks for king safety calculations
+var fileMasks [8]board.Bitboard
+
+func init() {
+	// Initialize file masks (columns a-h)
+	for f := 0; f < 8; f++ {
+		var mask board.Bitboard
+		for r := 0; r < 8; r++ {
+			mask |= board.Bitboard(1) << (r*8 + f)
+		}
+		fileMasks[f] = mask
+	}
+}
+
 // Evaluate returns the position evaluation in centipawns.
 // Positive = white is better, negative = black is better.
 func Evaluate(pos board.Position) int {
@@ -96,7 +121,152 @@ func Evaluate(pos board.Position) int {
 	whitePST := pstScore(pos, pos.White)
 	blackPST := pstScore(pos, pos.Black)
 
-	return (white + whitePST) - (black + blackPST)
+	// King Safety (scaled by game phase)
+	whiteKingSafety := kingSafety(pos, true)
+	blackKingSafety := kingSafety(pos, false)
+
+	return (white + whitePST + whiteKingSafety) - (black + blackPST + blackKingSafety)
+}
+
+// kingSafety evaluates king safety for the given color
+func kingSafety(pos board.Position, isWhite bool) int {
+	// Find king position
+	var kingBB board.Bitboard
+	if isWhite {
+		kingBB = pos.Kings & pos.White
+	} else {
+		kingBB = pos.Kings & pos.Black
+	}
+	if kingBB == 0 {
+		return 0
+	}
+	kingSq := bitScanForward(kingBB)
+	kingFile := kingSq & 7
+	kingRank := kingSq >> 3
+
+	score := 0
+
+	// 1. Pawn Shield evaluation
+	score += pawnShield(pos, kingSq, isWhite)
+
+	// 2. Open files near king
+	score += openFilesNearKing(pos, kingFile)
+
+	// 3. Uncastled king penalty (king on d or e file in middlegame)
+	if kingFile == 3 || kingFile == 4 { // d or e file
+		if isWhite && kingRank == 0 {
+			score -= UncastledKingPenalty
+		} else if !isWhite && kingRank == 7 {
+			score -= UncastledKingPenalty
+		}
+	}
+
+	// 4. Scale by game phase (king safety less important without queens)
+	var enemyQueens board.Bitboard
+	if isWhite {
+		enemyQueens = pos.Queens & pos.Black
+	} else {
+		enemyQueens = pos.Queens & pos.White
+	}
+	if enemyQueens == 0 {
+		score /= NoQueensDivisor
+	}
+
+	return score
+}
+
+// pawnShield evaluates the pawn shield in front of the king
+func pawnShield(pos board.Position, kingSq int, isWhite bool) int {
+	kingFile := kingSq & 7
+	kingRank := kingSq >> 3
+	score := 0
+
+	// Only evaluate pawn shield for castled king positions
+	// White: king on rank 0, files f,g,h (kingside) or a,b,c (queenside)
+	// Black: king on rank 7, same files
+	isCastledPosition := false
+	if isWhite && kingRank == 0 && (kingFile >= 5 || kingFile <= 2) {
+		isCastledPosition = true
+	} else if !isWhite && kingRank == 7 && (kingFile >= 5 || kingFile <= 2) {
+		isCastledPosition = true
+	}
+
+	if !isCastledPosition {
+		return 0
+	}
+
+	// Check pawns on the three files around the king
+	var ourPawns board.Bitboard
+	if isWhite {
+		ourPawns = pos.Pawns & pos.White
+	} else {
+		ourPawns = pos.Pawns & pos.Black
+	}
+
+	// Check files: kingFile-1, kingFile, kingFile+1
+	for df := -1; df <= 1; df++ {
+		f := kingFile + df
+		if f < 0 || f > 7 {
+			continue
+		}
+
+		pawnsOnFile := ourPawns & fileMasks[f]
+		if pawnsOnFile == 0 {
+			// No pawn on this file - penalty
+			score -= MissingShieldPenalty
+		} else {
+			// Check pawn position
+			for pawnsOnFile != 0 {
+				pawnSq := bitScanForward(pawnsOnFile)
+				pawnRank := pawnSq >> 3
+
+				if isWhite {
+					if pawnRank == 1 { // 2nd rank - ideal
+						score += PawnShieldBonus
+					} else if pawnRank == 2 { // 3rd rank - advanced
+						score += PawnShieldAdvanced
+					}
+				} else {
+					if pawnRank == 6 { // 7th rank for black - ideal
+						score += PawnShieldBonus
+					} else if pawnRank == 5 { // 6th rank for black - advanced
+						score += PawnShieldAdvanced
+					}
+				}
+				pawnsOnFile &= pawnsOnFile - 1
+			}
+		}
+	}
+
+	return score
+}
+
+// openFilesNearKing penalizes open/semi-open files near the king
+func openFilesNearKing(pos board.Position, kingFile int) int {
+	score := 0
+	allPawns := pos.Pawns
+
+	// Check files around the king (kingFile-1, kingFile, kingFile+1)
+	for df := -1; df <= 1; df++ {
+		f := kingFile + df
+		if f < 0 || f > 7 {
+			continue
+		}
+
+		whitePawnsOnFile := pos.Pawns & pos.White & fileMasks[f]
+		blackPawnsOnFile := pos.Pawns & pos.Black & fileMasks[f]
+		anyPawnsOnFile := allPawns & fileMasks[f]
+
+		if anyPawnsOnFile == 0 {
+			// Fully open file - big penalty
+			score -= OpenFilePenalty
+		} else if whitePawnsOnFile == 0 || blackPawnsOnFile == 0 {
+			// Semi-open file - smaller penalty
+			score -= SemiOpenFilePenalty
+		}
+	}
+
+	return score
 }
 
 // pstScore calculates piece-square table bonus for a color
