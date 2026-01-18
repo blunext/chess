@@ -102,7 +102,7 @@ func (uci *UCI) cmdUCI() {
 	fmt.Printf("id name %s\n", engineName)
 	fmt.Printf("id author %s\n", engineAuthor)
 	// Options
-	fmt.Printf("option name Hash type spin default %d min 1 max 4096\n", engine.DefaultHashMB)
+	fmt.Printf("option name Hash type spin default %d min 1 max 32768\n", engine.DefaultHashMB)
 	fmt.Println("uciok")
 }
 
@@ -132,6 +132,7 @@ func (uci *UCI) cmdSetOption(args []string) {
 	case "hash":
 		if sizeMB, err := strconv.Atoi(value); err == nil && sizeMB > 0 {
 			uci.session.ResizeTT(sizeMB)
+			fmt.Printf("info string Hash set to %d MB\n", sizeMB)
 		}
 	}
 }
