@@ -72,8 +72,9 @@ func TestNMPComparison(t *testing.T) {
 	totalSpeedup := 0.0
 	count := 0
 
-	// Save and disable TT for fair comparison
+	// Save original state for restoration after test
 	oldTT := TT
+	oldNMP := UseNullMovePruning
 
 	for _, tc := range testCases {
 		pos := board.CreatePositionFormFEN(tc.fen)
@@ -140,7 +141,7 @@ func TestNMPComparison(t *testing.T) {
 
 	// Restore original state
 	TT = oldTT
-	UseNullMovePruning = true
+	UseNullMovePruning = oldNMP
 
 	if allMatch {
 		fmt.Println("\n✓ NMP finds all expected tactical moves correctly")
