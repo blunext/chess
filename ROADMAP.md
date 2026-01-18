@@ -257,11 +257,39 @@
 - [ ] Narzędzie: cutechess-cli lub własny skrypt
 
 ## Move ordering zaawansowane
-- [ ] History heuristic
+
+> **Cel:** Lepsze sortowanie ruchów = szybsze cutoffs = głębsze przeszukiwanie
+
+- [ ] **Killer moves** - 2 sloty na głębokość dla ruchów które spowodowały cutoff
+- [ ] **History heuristic** - tablica [from][to] z punktami za dobre ruchy
 - [ ] Countermove heuristic
 - [ ] SEE (Static Exchange Evaluation) dla sortowania bić
 
----
+## Quiescence Search Improvements
+
+> **Cel:** Lepsze wykrywanie taktyki w quiescence search
+
+### ✅ Obecna implementacja
+- [x] Przeszukiwanie tylko bić do "spokojnej" pozycji
+- [x] Stand-pat evaluation
+
+### Ulepszenia (priorytetyzowane)
+- [ ] **Mate threat detection** - wykrywanie groźby mata w 1 przed zakończeniem quiescence
+  - Sprawdź czy przeciwnik ma mata w 1 ruch
+  - Jeśli tak, kontynuuj przeszukiwanie (nie kończ na stand-pat)
+  - Rozwiązuje bug: Qa2 (silnik nie widział Nf5 → Qxg7#)
+- [ ] **Check evasion** - kontynuuj gdy w szachu (nie kończ quiescence)
+- [ ] **Delta pruning** - obcinaj bicia które nie mogą poprawić alpha
+
+## Search Extensions (rozszerzenia)
+
+> **Cel:** Przedłużanie przeszukiwania w krytycznych sytuacjach
+
+- [x] **Check Extensions** - +1 ply gdy pozycja jest w szachu
+- [ ] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
+- [ ] **Recapture Extensions** - +1 ply przy odbiciu na tym samym polu
+- [ ] **Passed Pawn Extensions** - +1 ply dla promocji pionów przechodzących
+- [ ] **Mate Threat Extensions** - +1 ply gdy przeciwnik grozi matem
 
 # Multi-Session Support (Iteracja 14b)
 

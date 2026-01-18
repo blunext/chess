@@ -344,6 +344,7 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 }
 
 // quiescence continues search only for captures to avoid horizon effect.
+// Also checks for mate threats to avoid missing tactics like Qa2 bug.
 func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, alpha, beta int, ctx *SearchContext) int {
 	ctx.nodes++
 	if ctx.nodes&2047 == 0 && ctx.checkTimeout() {
@@ -352,8 +353,20 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 
 	standPat := Evaluate(*pos)
 
+	// Check if we're in check - must search all evasions, not just captures
+	inCheck := pos.IsInCheck()
+
+	// Check for mate threat: can the side that JUST MOVED mate us in 1?
+	// This catches cases like Nf5 (after Qa2) where White threatens Qxg7#
+	// We only check this if we're about to use stand-pat cutoff
+	opponentHasMateThreat := false
+	if !inCheck {
+		// Opponent is !pos.WhiteMove (the side that just moved)
+		opponentHasMateThreat = s.hasMateInOne(pos, pieceMoves, !pos.WhiteMove)
+	}
+
 	if pos.WhiteMove {
-		if standPat >= beta {
+		if standPat >= beta && !opponentHasMateThreat {
 			return beta
 		}
 		if standPat > alpha {
@@ -361,10 +374,17 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		}
 
 		moves := pos.GenerateLegalMoves(pieceMoves)
-		captures := filterCaptures(moves)
-		sortMoves(captures)
 
-		for _, move := range captures {
+		// If in check or under mate threat, search all moves; otherwise just captures
+		var searchMoves []board.Move
+		if inCheck || opponentHasMateThreat {
+			searchMoves = moves
+		} else {
+			searchMoves = filterCaptures(moves)
+		}
+		sortMoves(searchMoves)
+
+		for _, move := range searchMoves {
 			undo := pos.MakeMove(move)
 			score := s.quiescence(pos, pieceMoves, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
@@ -382,7 +402,8 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		}
 		return alpha
 	} else {
-		if standPat <= alpha {
+		// Black to move
+		if standPat <= alpha && !opponentHasMateThreat {
 			return alpha
 		}
 		if standPat < beta {
@@ -390,10 +411,16 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		}
 
 		moves := pos.GenerateLegalMoves(pieceMoves)
-		captures := filterCaptures(moves)
-		sortMoves(captures)
 
-		for _, move := range captures {
+		var searchMoves []board.Move
+		if inCheck || opponentHasMateThreat {
+			searchMoves = moves
+		} else {
+			searchMoves = filterCaptures(moves)
+		}
+		sortMoves(searchMoves)
+
+		for _, move := range searchMoves {
 			undo := pos.MakeMove(move)
 			score := s.quiescence(pos, pieceMoves, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
@@ -411,4 +438,30 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		}
 		return beta
 	}
+}
+
+// hasMateInOne checks if the opponent (not the side to move) can deliver mate in 1.
+// This is used in quiescence to detect mate threats before using stand-pat cutoff.
+// We simulate giving the opponent a free move and check if they can mate.
+func (s *Session) hasMateInOne(pos *board.Position, pieceMoves board.PieceMoves, opponentIsWhite bool) bool {
+	// Create a copy and flip the side to simulate opponent having a free move
+	tempPos := *pos
+	tempPos.WhiteMove = opponentIsWhite
+	tempPos.Hash ^= board.HashSide() // Update hash for side change
+
+	moves := tempPos.GenerateLegalMoves(pieceMoves)
+
+	for _, m := range moves {
+		undo := tempPos.MakeMove(m)
+		// After the move, check if defender has any legal moves
+		replies := tempPos.GenerateLegalMoves(pieceMoves)
+		isMate := len(replies) == 0 && tempPos.IsInCheck()
+		tempPos.UnmakeMove(m, undo)
+
+		if isMate {
+			return true
+		}
+	}
+
+	return false
 }
