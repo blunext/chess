@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"chess/board"
-	"chess/book"
 )
 
 // SearchContext holds state for time-managed search.
@@ -57,56 +56,9 @@ type SearchResultTimed struct {
 }
 
 // SearchWithTime performs iterative deepening search with time limit.
-// It searches progressively deeper until time runs out.
-// Uses the unified alphaBeta/quiescence from search.go.
+// Uses the default session for backward compatibility.
 func SearchWithTime(pos board.Position, pieceMoves board.PieceMoves, timeLimit time.Duration) SearchResultTimed {
-	// Try opening book first
-	if OpeningBook != nil {
-		polyHash := book.PolyglotHash(pos)
-		if bookMove, ok := OpeningBook.ProbeRandom(polyHash, bookRng); ok {
-			legalMoves := pos.GenerateLegalMoves(pieceMoves)
-			for _, m := range legalMoves {
-				if m.From == bookMove.From && m.To == bookMove.To && m.Promotion == bookMove.Promotion {
-					return SearchResultTimed{Move: m, FromBook: true}
-				}
-			}
-		}
-	}
-
-	ctx := NewSearchContext(timeLimit)
-	var bestResult SearchResultTimed
-
-	// Iterative deepening: search depth 1, 2, 3, ... until time runs out
-	for depth := 1; depth <= 100; depth++ {
-		result := searchRootDepth(pos, pieceMoves, depth, ctx)
-
-		// If search was stopped mid-way, don't use partial results
-		if ctx.stopped.Load() && depth > 1 {
-			break
-		}
-
-		// Update best result
-		bestResult = SearchResultTimed{
-			Move:  result.Move,
-			Score: result.Score,
-			Depth: depth,
-			Nodes: ctx.nodes,
-			Time:  ctx.Elapsed(),
-		}
-
-		// If we found a mate, no need to search deeper
-		if result.Score > mateScore-100 || result.Score < -mateScore+100 {
-			break
-		}
-
-		// Check if we have time for another iteration
-		// Heuristic: next depth takes ~3-4x longer
-		if ctx.Elapsed()*4 >= timeLimit {
-			break
-		}
-	}
-
-	return bestResult
+	return getDefaultSession().SearchWithTime(pos, pieceMoves, timeLimit)
 }
 
 // Emergency buffer to account for network lag and UCI overhead (in ms).

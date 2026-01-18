@@ -263,12 +263,35 @@
 
 ---
 
+# Multi-Session Support (Iteracja 14b)
+
+> **Cel:** Możliwość grania wielu partii równolegle w osobnych goroutynach
+
+## ✅ Implementacja
+- [x] Struktura `Session` z własnym TT i RNG
+- [x] Przeniesienie globalnego `TT` do `Session`
+- [x] `Search()` jako metoda na `Session`
+- [x] UCI tworzy `Session` per gra
+
+## Współdzielone (read-only, bezpieczne):
+- PST tables (pawnPST, knightPST, ...)
+- fileMasks, adjacentFileMasks
+- pieceValues
+- OpeningBook
+- magic bitboards
+
+## Per-session (izolowane):
+- `TT *TranspositionTable`
+- `bookRng *rand.Rand`
+
+---
+
 # Parallelizacja (Iteracja 15)
 
 > **Cel:** Wykorzystanie wielu rdzeni CPU dla większej mocy obliczeniowej
 
 ## Wymagane wcześniej (blokery)
-- [ ] Transposition Table (ze współdzielonym dostępem)
+- [x] Multi-Session Support (Iteracja 14b)
 - [ ] Iterative Deepening (dla Lazy SMP)
 
 ## Etapy implementacji

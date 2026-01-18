@@ -134,15 +134,16 @@ func (tt *TranspositionTable) Hashfull() int {
 	return (used * 1000) / int(sample)
 }
 
-// Global transposition table instance
+// TT is kept for backward compatibility with tests that use engine.TT directly.
+// New code should use Session.TT instead.
 var TT *TranspositionTable
 
-// InitTT initializes the global transposition table.
+// InitTT initializes the global transposition table (for backward compatibility).
+// New code should use Session.ResizeTT instead.
 func InitTT(sizeMB int) {
 	TT = NewTranspositionTable(sizeMB)
-}
-
-func init() {
-	// Initialize with default size
-	InitTT(DefaultHashMB)
+	// Also update the default session if it exists
+	if defaultSession != nil {
+		defaultSession.TT = TT
+	}
 }

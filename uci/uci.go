@@ -22,6 +22,7 @@ const (
 type UCI struct {
 	position   board.Position
 	pieceMoves board.PieceMoves
+	session    *engine.Session
 	logger     *engine.Logger
 }
 
@@ -41,6 +42,7 @@ func Start() {
 	uci := &UCI{
 		position:   board.CreatePositionFormFEN(board.InitialPosition),
 		pieceMoves: generator.NewGenerator(),
+		session:    engine.NewSession(engine.DefaultHashMB),
 		logger:     l,
 	}
 
@@ -129,7 +131,7 @@ func (uci *UCI) cmdSetOption(args []string) {
 	switch strings.ToLower(name) {
 	case "hash":
 		if sizeMB, err := strconv.Atoi(value); err == nil && sizeMB > 0 {
-			engine.InitTT(sizeMB)
+			uci.session.ResizeTT(sizeMB)
 		}
 	}
 }
@@ -138,9 +140,7 @@ func (uci *UCI) cmdSetOption(args []string) {
 func (uci *UCI) cmdNewGame() {
 	uci.position = board.CreatePositionFormFEN(board.InitialPosition)
 	// Clear transposition table for new game
-	if engine.TT != nil {
-		engine.TT.Clear()
-	}
+	uci.session.Clear()
 }
 
 // cmdPosition handles the "position" command
@@ -246,14 +246,14 @@ func (uci *UCI) cmdGo(args []string) {
 	if movetime > 0 {
 		// Fixed time per move
 		timeLimit := time.Duration(movetime) * time.Millisecond
-		result = engine.SearchWithTime(uci.position, uci.pieceMoves, timeLimit)
+		result = uci.session.SearchWithTime(uci.position, uci.pieceMoves, timeLimit)
 	} else if useTimeControl {
 		// Time control: allocate time based on remaining time
 		timeLimit := engine.AllocateTime(wtime, btime, winc, binc, uci.position.WhiteMove, movestogo)
-		result = engine.SearchWithTime(uci.position, uci.pieceMoves, timeLimit)
+		result = uci.session.SearchWithTime(uci.position, uci.pieceMoves, timeLimit)
 	} else if depth > 0 {
 		// Fixed depth search
-		fixedResult := engine.SearchWithBook(uci.position, uci.pieceMoves, depth)
+		fixedResult := uci.session.SearchWithBook(uci.position, uci.pieceMoves, depth)
 		result = engine.SearchResultTimed{
 			Move:     fixedResult.Move,
 			Score:    fixedResult.Score,
@@ -263,10 +263,10 @@ func (uci *UCI) cmdGo(args []string) {
 		}
 	} else if infinite {
 		// Infinite: use long time limit
-		result = engine.SearchWithTime(uci.position, uci.pieceMoves, 24*time.Hour)
+		result = uci.session.SearchWithTime(uci.position, uci.pieceMoves, 24*time.Hour)
 	} else {
 		// Default: use default depth
-		fixedResult := engine.SearchWithBook(uci.position, uci.pieceMoves, engine.DefaultSearchDepth)
+		fixedResult := uci.session.SearchWithBook(uci.position, uci.pieceMoves, engine.DefaultSearchDepth)
 		result = engine.SearchResultTimed{
 			Move:     fixedResult.Move,
 			Score:    fixedResult.Score,
