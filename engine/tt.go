@@ -87,15 +87,22 @@ func (tt *TranspositionTable) Probe(hash uint64) (TTEntry, bool) {
 }
 
 // Store saves a position in the transposition table.
-// Uses "always replace" strategy - new entries always overwrite old ones.
+// Uses "depth-preferred" strategy - only replace if new entry has equal or greater depth,
+// or if the slot contains a different position.
 func (tt *TranspositionTable) Store(hash uint64, score int16, depth int8, flag TTFlag, bestMove board.Move) {
 	idx := tt.index(hash)
-	tt.entries[idx] = TTEntry{
-		Hash:     uint32(hash >> 32),
-		Score:    score,
-		Depth:    depth,
-		Flag:     flag,
-		BestMove: bestMove,
+	existing := &tt.entries[idx]
+	hashUpper := uint32(hash >> 32)
+
+	// Replace if: empty slot, different position, or deeper/equal search
+	if existing.Flag == TTFlagNone || existing.Hash != hashUpper || depth >= existing.Depth {
+		tt.entries[idx] = TTEntry{
+			Hash:     hashUpper,
+			Score:    score,
+			Depth:    depth,
+			Flag:     flag,
+			BestMove: bestMove,
+		}
 	}
 }
 

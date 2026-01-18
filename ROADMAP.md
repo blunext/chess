@@ -215,7 +215,7 @@
 ### ✅ Tactical Test Suite (search + eval)
 - [x] Mate in 1-3 (10+ pozycji) - silnik MUSI znaleźć mata
 - [x] Win material (10+ pozycji) - widelce, związania, odkryte ataki
-- [x] WAC subset (34 pozycji) - klasyczne pozycje z "Win At Chess"
+- [x] WAC subset (35 pozycji) - klasyczne pozycje z "Win At Chess"
 - [x] Defensive positions (5+ pozycji) - musi bronić, nie stracić materiału
 - [x] Test runner: sprawdza czy silnik znajduje bestMove w limicie głębokości/czasu
 
@@ -224,10 +224,19 @@
 > Pozycje zakomentowane w `engine/tactical_test.go`
 
 - [ ] **WAC.002**: Engine finds `c4c3`, expected `b3b2` (Rxb2) - endgame pawn capture
-- [ ] **WAC.009**: Engine finds `h4g4`, expected `d6h2` (Bh2+) - bishop check
 
 > ✅ Naprawione po wyłączeniu hasMateInOne (22x speedup):
-> - WAC.003, WAC.007, WAC.022, WAC.040, WAC.083 - teraz przechodzą
+> - WAC.003, WAC.007, WAC.022, WAC.040, WAC.083
+>
+> ✅ Naprawione po poprawkach TT:
+> - WAC.009 - problem był w kolejności TT probe vs check extension
+>   - Bug: TT probe używał depth PRZED check extension, Store używał depth PO extension
+>   - Fix: przenieść check extension PRZED TT probe
+>   - Dodatkowo: poprawiona logika TT bounds (nie modyfikować alpha/beta, tylko cutoff)
+>
+> 📊 Status testów (2026-01-18):
+> - `TestTacticalSuite` (depth-based): 35/35 (100%)
+> - `TestTacticalSuiteWithTime` (1s limit): >70% threshold - PASS
 
 ### Tactical Positions to Verify
 > Pozycje które wymagają ręcznej weryfikacji - czy FEN i oczekiwany ruch są poprawne?

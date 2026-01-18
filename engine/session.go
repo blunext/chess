@@ -334,7 +334,16 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 	alphaOrig := alpha
 	hash := pos.Hash
 
-	// Probe transposition table
+	// Check if we're in check (used for extensions and null move)
+	inCheck := pos.IsInCheck()
+
+	// Check Extension: Extend search by 1 ply when in check
+	// Must be done BEFORE TT probe so depth is correct
+	if inCheck {
+		depth++
+	}
+
+	// Probe transposition table (after check extension)
 	var ttMove board.Move
 	if s.TT != nil {
 		if entry, found := s.TT.Probe(hash); found {
@@ -345,27 +354,20 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 				case TTFlagExact:
 					return score
 				case TTFlagLower:
-					if score > alpha {
-						alpha = score
+					// Lower bound: real score >= stored score
+					// Cutoff if stored score >= beta (fail-high)
+					if score >= beta {
+						return score
 					}
 				case TTFlagUpper:
-					if score < beta {
-						beta = score
+					// Upper bound: real score <= stored score
+					// Cutoff if stored score <= alpha (fail-low)
+					if score <= alpha {
+						return score
 					}
-				}
-				if alpha >= beta {
-					return score
 				}
 			}
 		}
-	}
-
-	// Check if we're in check (used for extensions and null move)
-	inCheck := pos.IsInCheck()
-
-	// Check Extension: Extend search by 1 ply when in check
-	if inCheck {
-		depth++
 	}
 
 	// Null Move Pruning

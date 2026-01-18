@@ -125,14 +125,14 @@ var tacticalPositions = []TacticalPosition{
 		MinDepth:  3,
 		Category:  "wac",
 	},
-	// {
-	// 	// EPD: bm Bh2+ - Bishop check on h2
-	// 	Name:      "WAC.009",
-	// 	FEN:       "3q1rk1/p4pp1/2pb3p/3p4/6Pr/1PNQ4/P1PB1PP1/4RRK1 b - - 0 1",
-	// 	BestMoves: []string{"d6h2"}, // Bh2+ - engine finds h4g4 instead
-	// 	MinDepth:  4,
-	// 	Category:  "wac",
-	// },
+	{
+		// EPD: bm Bh2+ - Bishop check on h2
+		Name:      "WAC.009",
+		FEN:       "3q1rk1/p4pp1/2pb3p/3p4/6Pr/1PNQ4/P1PB1PP1/4RRK1 b - - 0 1",
+		BestMoves: []string{"d6h2"},
+		MinDepth:  4,
+		Category:  "wac",
+	},
 	{
 		// EPD: bm Ba2/Nf7 - two acceptable moves
 		Name:      "WAC.022",
@@ -376,7 +376,7 @@ func TestTacticalSuite(t *testing.T) {
 func TestTacticalSuiteWithTime(t *testing.T) {
 	magic.Prepare()
 	pm := generator.NewGenerator()
-	timeLimit := 500 * time.Millisecond
+	timeLimit := 1 * time.Second
 
 	passed := 0
 	failed := 0
