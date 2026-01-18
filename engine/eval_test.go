@@ -361,3 +361,104 @@ func TestPawnStructure_PawnStructureFunction(t *testing.T) {
 	// So: doubled (-20) + isolated (-15*2 = -30) + passed (20 + 40 for e5) = +10
 	assert.Less(t, blackPawnScore, whitePawnScore, "White with passed pawn should score better")
 }
+
+// === Space Bonus Tests ===
+
+func TestSpaceBonus_CentralPawns(t *testing.T) {
+	// White has pawn on e4 (central square)
+	centralPawn := board.CreatePositionFormFEN("4k3/8/8/8/4P3/8/8/4K3 w - - 0 1")
+
+	// White has pawn on a4 (edge square)
+	edgePawn := board.CreatePositionFormFEN("4k3/8/8/8/P7/8/8/4K3 w - - 0 1")
+
+	centralScore := spaceBonus(centralPawn, true)
+	edgeScore := spaceBonus(edgePawn, true)
+
+	// Central pawn should score higher (central bonus + rank 4 advancement)
+	assert.Greater(t, centralScore, edgeScore, "Central pawn should score higher than edge pawn")
+	// e4 gets CentralPawnBonus (25) + AdvancedPawnRank4 (5) = 30
+	// a4 gets only AdvancedPawnRank4 (5)
+	assert.Equal(t, CentralPawnBonus+AdvancedPawnRank4, centralScore, "e4 pawn should get central + advancement bonus")
+	assert.Equal(t, AdvancedPawnRank4, edgeScore, "a4 pawn should get only advancement bonus")
+}
+
+func TestSpaceBonus_ExtendedCenter(t *testing.T) {
+	// White has pawn on c4 (extended center)
+	c4Pawn := board.CreatePositionFormFEN("4k3/8/8/8/2P5/8/8/4K3 w - - 0 1")
+
+	score := spaceBonus(c4Pawn, true)
+
+	// c4 gets ExtendedCenterBonus (15) + AdvancedPawnRank4 (5) = 20
+	assert.Equal(t, ExtendedCenterBonus+AdvancedPawnRank4, score, "c4 pawn should get extended center + advancement bonus")
+}
+
+func TestSpaceBonus_D4E4Center(t *testing.T) {
+	// White has ideal pawn center d4 + e4
+	idealCenter := board.CreatePositionFormFEN("4k3/8/8/8/3PP3/8/8/4K3 w - - 0 1")
+
+	score := spaceBonus(idealCenter, true)
+
+	// d4 + e4: 2 * (CentralPawnBonus + AdvancedPawnRank4) = 2 * (25 + 5) = 60
+	expectedScore := 2 * (CentralPawnBonus + AdvancedPawnRank4)
+	assert.Equal(t, expectedScore, score, "d4+e4 pawns should get double central bonus")
+}
+
+func TestSpaceBonus_AdvancedPawnRanks(t *testing.T) {
+	// Pawn on rank 4 (e4)
+	rank4 := board.CreatePositionFormFEN("4k3/8/8/8/4P3/8/8/4K3 w - - 0 1")
+	// Pawn on rank 5 (e5)
+	rank5 := board.CreatePositionFormFEN("4k3/8/8/4P3/8/8/8/4K3 w - - 0 1")
+	// Pawn on rank 6 (e6) - NOT in central squares anymore
+	rank6 := board.CreatePositionFormFEN("4k3/8/4P3/8/8/8/8/4K3 w - - 0 1")
+
+	score4 := spaceBonus(rank4, true)
+	score5 := spaceBonus(rank5, true)
+	score6 := spaceBonus(rank6, true)
+
+	// Verify exact values:
+	// e4: central (25) + rank4 (5) = 30
+	// e5: central (25) + rank5 (10) = 35
+	// e6: no central bonus + rank6 (15) = 15 (loses central bonus!)
+	assert.Equal(t, CentralPawnBonus+AdvancedPawnRank4, score4, "e4 should get central + rank4 bonus")
+	assert.Equal(t, CentralPawnBonus+AdvancedPawnRank5, score5, "e5 should get central + rank5 bonus")
+	assert.Equal(t, AdvancedPawnRank6, score6, "e6 is not in central squares, only rank6 bonus")
+
+	// e5 > e4 (both central, e5 more advanced)
+	assert.Greater(t, score5, score4, "Rank 5 central pawn should score higher than rank 4")
+	// e5 > e6 because e5 keeps central bonus, e6 loses it
+	assert.Greater(t, score5, score6, "Central e5 pawn with bonus should beat non-central e6")
+}
+
+func TestSpaceBonus_BlackPawns(t *testing.T) {
+	// Black pawn on d5 (central from black's perspective)
+	blackCenter := board.CreatePositionFormFEN("4k3/8/8/3p4/8/8/8/4K3 w - - 0 1")
+
+	score := spaceBonus(blackCenter, false)
+
+	// d5 for black: central (25) + rank 4 from black's view (5) = 30
+	assert.Equal(t, CentralPawnBonus+AdvancedPawnRank4, score, "Black d5 pawn should get central + advancement bonus")
+}
+
+func TestSpaceBonus_SymmetricPosition(t *testing.T) {
+	// Symmetric position with central pawns
+	pos := board.CreatePositionFormFEN("4k3/3pp3/8/8/8/8/3PP3/4K3 w - - 0 1")
+
+	whiteScore := spaceBonus(pos, true)
+	blackScore := spaceBonus(pos, false)
+
+	// Symmetric position should have equal space scores
+	assert.Equal(t, whiteScore, blackScore, "Symmetric position should have equal space bonus")
+}
+
+func TestSpaceBonus_ComplexPosition(t *testing.T) {
+	// Position after 1.e4 e5 2.d4
+	pos := board.CreatePositionFormFEN("rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq - 0 1")
+
+	whiteScore := spaceBonus(pos, true)
+	blackScore := spaceBonus(pos, false)
+
+	// White has d4 + e4 (both central), black has e5 (central)
+	// White: 2 pawns on central + rank4 = 2 * (25 + 5) = 60
+	// Black: e5 (central) + rank 4 from black's view = 25 + 5 = 30
+	assert.Greater(t, whiteScore, blackScore, "White with d4+e4 should have more space than black with e5")
+}

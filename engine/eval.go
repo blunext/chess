@@ -107,6 +107,15 @@ const (
 	PassedPawnRankBonus = 10 // additional bonus per rank advanced
 )
 
+// Space Bonus constants
+const (
+	CentralPawnBonus    = 25 // bonus for pawns on d4/e4/d5/e5
+	ExtendedCenterBonus = 15 // bonus for pawns on c4/c5/f4/f5
+	AdvancedPawnRank4   = 5  // bonus for any pawn on rank 4
+	AdvancedPawnRank5   = 10 // bonus for any pawn on rank 5
+	AdvancedPawnRank6   = 15 // bonus for any pawn on rank 6
+)
+
 // File masks for king safety and pawn structure calculations
 var fileMasks [8]board.Bitboard
 
@@ -152,7 +161,11 @@ func Evaluate(pos board.Position) int {
 	whitePawnStructure := pawnStructure(pos, true)
 	blackPawnStructure := pawnStructure(pos, false)
 
-	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure)
+	// Space Bonus (central pawns, advanced pawns)
+	whiteSpace := spaceBonus(pos, true)
+	blackSpace := spaceBonus(pos, false)
+
+	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure) + (whiteSpace - blackSpace)
 }
 
 // pawnStructure evaluates pawn structure for a color
@@ -176,6 +189,57 @@ func pawnStructure(pos board.Position, isWhite bool) int {
 
 	// Passed pawns: pawns with no enemy pawns blocking or attacking
 	score += passedPawns(ourPawns, enemyPawns, isWhite)
+
+	return score
+}
+
+// spaceBonus evaluates space control through pawn placement
+func spaceBonus(pos board.Position, isWhite bool) int {
+	var ourPawns board.Bitboard
+	if isWhite {
+		ourPawns = pos.Pawns & pos.White
+	} else {
+		ourPawns = pos.Pawns & pos.Black
+	}
+
+	score := 0
+
+	// Central pawn bonus: d4/e4/d5/e5
+	// Squares: d4=27, e4=28, d5=35, e5=36
+	centralSquares := board.Bitboard((1 << 27) | (1 << 28) | (1 << 35) | (1 << 36))
+	score += popCount(ourPawns&centralSquares) * CentralPawnBonus
+
+	// Extended center bonus: c4/c5/f4/f5
+	// Squares: c4=26, f4=29, c5=34, f5=37
+	extendedSquares := board.Bitboard((1 << 26) | (1 << 29) | (1 << 34) | (1 << 37))
+	score += popCount(ourPawns&extendedSquares) * ExtendedCenterBonus
+
+	// Advanced pawn bonus (rank 4, 5, 6)
+	// For white: ranks 4,5,6 are indices 24-31, 32-39, 40-47
+	// For black: ranks 4,5,6 (from black's view) are indices 32-39, 24-31, 16-23
+	tempPawns := ourPawns
+	for tempPawns != 0 {
+		sq := bitScanForward(tempPawns)
+		rank := sq >> 3 // 0-7
+
+		var effectiveRank int
+		if isWhite {
+			effectiveRank = rank // rank 3=rank4, 4=rank5, 5=rank6
+		} else {
+			effectiveRank = 7 - rank // flip for black
+		}
+
+		switch effectiveRank {
+		case 3: // rank 4
+			score += AdvancedPawnRank4
+		case 4: // rank 5
+			score += AdvancedPawnRank5
+		case 5: // rank 6
+			score += AdvancedPawnRank6
+		}
+
+		tempPawns &= tempPawns - 1
+	}
 
 	return score
 }

@@ -87,8 +87,8 @@
 - [x] Piece-Square Tables (PST)
 - [x] Struktura pionów (zdwojone, izolowane, przechodzące)
 - [ ] Aktywność figur (mobilność)
-- [ ] Kontrola przestrzeni (Space bonus) - szczegóły poniżej
-- [ ] Tuning PST (Piece-Square Tables) - szczegóły poniżej
+- [x] Kontrola przestrzeni (Space bonus) - szczegóły poniżej ✅
+- [x] Tuning PST (Piece-Square Tables) - szczegóły poniżej ✅
 - [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej
 
 ### Bezpieczeństwo króla (King Safety)
@@ -123,18 +123,18 @@
 
 > **Cel:** Nagradzanie za kontrolę przestrzeni przez zaawansowane pionki. Silnik powinien preferować ruchy pionami które dają kontrolę nad centrum i terytorium przeciwnika.
 
-**1. Central Pawn Bonus**
-- [ ] Bonus za pionki na d4/e4/d5/e5 (+20-30 cp)
-- [ ] Mniejszy bonus za c4/c5/f4/f5 (+10-15 cp)
+**1. Central Pawn Bonus** ✅
+- [x] Bonus za pionki na d4/e4/d5/e5 (+25 cp)
+- [x] Mniejszy bonus za c4/c5/f4/f5 (+15 cp)
 
-**2. Space Calculation**
+**2. Space Calculation** (opcjonalne - pominięte)
 - [ ] Zliczanie pól kontrolowanych za linią pionów
 - [ ] Bonus skalowany z liczbą figur (więcej figur = przestrzeń ważniejsza)
 - [ ] Typowe wartości: +0.5 cp za każde kontrolowane pole
 
-**3. Pawn Advancement Bonus**
-- [ ] Bonus za zaawansowane pionki (rank 4-6) poza passed pawn bonus
-- [ ] Skalowanie: +5 za rank 4, +10 za rank 5, +15 za rank 6
+**3. Pawn Advancement Bonus** ✅
+- [x] Bonus za zaawansowane pionki (rank 4-6) poza passed pawn bonus
+- [x] Skalowanie: +5 za rank 4, +10 za rank 5, +15 za rank 6
 
 ### Tuning PST (Piece-Square Tables)
 
