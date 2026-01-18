@@ -87,6 +87,8 @@
 - [x] Piece-Square Tables (PST)
 - [x] Struktura pionów (zdwojone, izolowane, przechodzące)
 - [ ] Aktywność figur (mobilność)
+- [ ] Kontrola przestrzeni (Space bonus) - szczegóły poniżej
+- [ ] Tuning PST (Piece-Square Tables) - szczegóły poniżej
 - [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej
 
 ### Bezpieczeństwo króla (King Safety)
@@ -117,6 +119,36 @@
 **6. Pawn Storm (opcjonalne - na później)**
 - [ ] Kara za pionki przeciwnika zbliżające się do naszego króla
 
+### Kontrola przestrzeni (Space Bonus)
+
+> **Cel:** Nagradzanie za kontrolę przestrzeni przez zaawansowane pionki. Silnik powinien preferować ruchy pionami które dają kontrolę nad centrum i terytorium przeciwnika.
+
+**1. Central Pawn Bonus**
+- [ ] Bonus za pionki na d4/e4/d5/e5 (+20-30 cp)
+- [ ] Mniejszy bonus za c4/c5/f4/f5 (+10-15 cp)
+
+**2. Space Calculation**
+- [ ] Zliczanie pól kontrolowanych za linią pionów
+- [ ] Bonus skalowany z liczbą figur (więcej figur = przestrzeń ważniejsza)
+- [ ] Typowe wartości: +0.5 cp za każde kontrolowane pole
+
+**3. Pawn Advancement Bonus**
+- [ ] Bonus za zaawansowane pionki (rank 4-6) poza passed pawn bonus
+- [ ] Skalowanie: +5 za rank 4, +10 za rank 5, +15 za rank 6
+
+### Tuning PST (Piece-Square Tables)
+
+> **Problem:** Obecne pawnPST bazuje na "Simplified Evaluation Function" która karze centralne pionki na początkowych pozycjach (d2/e2 = -20!), co powoduje że silnik preferuje ruchy figurami zamiast pionami.
+
+**1. Pawn PST Fix**
+- [ ] Usunąć negatywne wartości dla d2/e2 (obecnie -20)
+- [ ] Usunąć negatywne wartości dla c3/f3 (obecnie -10)
+- [ ] Zwiększyć bonusy dla zaawansowanych pionów (rank 4-6)
+
+**2. Middlegame vs Endgame PST**
+- [ ] Osobne tablice dla middlegame i endgame
+- [ ] Interpolacja między fazami gry (game phase)
+- [ ] W endgame król powinien być aktywny (kingEndgamePST)
 
 ## Iteracja 12: Search
 - [x] Minimax
