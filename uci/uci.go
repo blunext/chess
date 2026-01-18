@@ -24,6 +24,7 @@ type UCI struct {
 	pieceMoves board.PieceMoves
 	session    *engine.Session
 	logger     *engine.Logger
+	firstMove  bool // true if next go command is first of the game
 }
 
 // Start begins the UCI protocol loop
@@ -44,6 +45,7 @@ func Start() {
 		pieceMoves: generator.NewGenerator(),
 		session:    engine.NewSession(engine.DefaultHashMB),
 		logger:     l,
+		firstMove:  true,
 	}
 
 	if uci.logger != nil {
@@ -142,6 +144,12 @@ func (uci *UCI) cmdNewGame() {
 	uci.position = board.CreatePositionFormFEN(board.InitialPosition)
 	// Clear transposition table for new game
 	uci.session.Clear()
+	uci.firstMove = true
+
+	// Log new game start
+	if uci.logger != nil {
+		uci.logger.LogGameStart("Position: startpos")
+	}
 }
 
 // cmdPosition handles the "position" command
@@ -242,6 +250,27 @@ func (uci *UCI) cmdGo(args []string) {
 		}
 	}
 
+	// Log game parameters on first move
+	if uci.firstMove && uci.logger != nil {
+		params := ""
+		if movetime > 0 {
+			params = fmt.Sprintf("movetime: %dms", movetime)
+		} else if useTimeControl {
+			params = fmt.Sprintf("wtime: %dms, btime: %dms, winc: %dms, binc: %dms", wtime, btime, winc, binc)
+			if movestogo > 0 {
+				params += fmt.Sprintf(", movestogo: %d", movestogo)
+			}
+		} else if depth > 0 {
+			params = fmt.Sprintf("depth: %d", depth)
+		} else if infinite {
+			params = "infinite"
+		} else {
+			params = fmt.Sprintf("default depth: %d", engine.DefaultSearchDepth)
+		}
+		uci.logger.LogGameStart(params)
+		uci.firstMove = false
+	}
+
 	var result engine.SearchResultTimed
 
 	if movetime > 0 {
@@ -296,10 +325,25 @@ func (uci *UCI) cmdGo(args []string) {
 				scoreStr = "Mate -"
 			}
 
+			// Map piece type to name
+			pieceNames := map[board.Piece]string{
+				board.Pawn:   "Pawn",
+				board.Knight: "Knight",
+				board.Bishop: "Bishop",
+				board.Rook:   "Rook",
+				board.Queen:  "Queen",
+				board.King:   "King",
+			}
+			pieceName := pieceNames[result.Move.Piece]
+			if pieceName == "" {
+				pieceName = "?"
+			}
+
 			uci.logger.Log(engine.LogInfo{
 				Timestamp: time.Now(),
 				FEN:       uci.position.ToFEN(),
 				Move:      result.Move.ToUCI(),
+				Piece:     pieceName,
 				Source: func() string {
 					if result.FromBook {
 						return "Book"
