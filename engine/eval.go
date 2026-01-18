@@ -16,14 +16,15 @@ const (
 // Based on Simplified Evaluation Function from Chess Programming Wiki
 
 // pawnPST encourages central pawns and advancement
+// Fixed: removed penalties for d2/e2 (-20 was bad!), added neutral/positive values
 var pawnPST = [64]int{
 	0, 0, 0, 0, 0, 0, 0, 0, // rank 1 (impossible)
-	5, 10, 10, -20, -20, 10, 10, 5, // rank 2
-	5, -5, -10, 0, 0, -10, -5, 5, // rank 3
-	0, 0, 0, 20, 20, 0, 0, 0, // rank 4
-	5, 5, 10, 25, 25, 10, 5, 5, // rank 5
-	10, 10, 20, 30, 30, 20, 10, 10, // rank 6
-	50, 50, 50, 50, 50, 50, 50, 50, // rank 7
+	0, 0, 0, 5, 5, 0, 0, 0, // rank 2 - neutral, slight bonus for central pawns
+	0, 0, 0, 10, 10, 0, 0, 0, // rank 3 - bonus for advanced central pawns
+	5, 5, 10, 25, 25, 10, 5, 5, // rank 4 - good advancement
+	10, 10, 15, 30, 30, 15, 10, 10, // rank 5 - strong advancement
+	20, 20, 25, 35, 35, 25, 20, 20, // rank 6 - very advanced
+	50, 50, 50, 50, 50, 50, 50, 50, // rank 7 - about to promote
 	0, 0, 0, 0, 0, 0, 0, 0, // rank 8 (promotion)
 }
 
@@ -137,22 +138,21 @@ func init() {
 
 // Evaluate returns the position evaluation in centipawns.
 // Positive = white is better, negative = black is better.
+// Uses PeSTO tables with tapered eval as base, plus king safety and pawn structure.
 func Evaluate(pos board.Position) int {
-	white := materialCount(pos, pos.White)
-	black := materialCount(pos, pos.Black)
+	// PeSTO provides material + PST with tapered eval
+	pestoScore := EvaluatePeSTO(pos)
 
-	whitePST := pstScore(pos, pos.White)
-	blackPST := pstScore(pos, pos.Black)
-
+	// Additional evaluation terms (not in PeSTO)
 	// King Safety (scaled by game phase)
 	whiteKingSafety := kingSafety(pos, true)
 	blackKingSafety := kingSafety(pos, false)
 
-	// Pawn Structure
+	// Pawn Structure (doubled, isolated, passed pawns)
 	whitePawnStructure := pawnStructure(pos, true)
 	blackPawnStructure := pawnStructure(pos, false)
 
-	return (white + whitePST + whiteKingSafety + whitePawnStructure) - (black + blackPST + blackKingSafety + blackPawnStructure)
+	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure)
 }
 
 // pawnStructure evaluates pawn structure for a color

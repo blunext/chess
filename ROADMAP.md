@@ -140,15 +140,15 @@
 
 > **Problem:** Obecne pawnPST bazuje na "Simplified Evaluation Function" która karze centralne pionki na początkowych pozycjach (d2/e2 = -20!), co powoduje że silnik preferuje ruchy figurami zamiast pionami.
 
-**1. Pawn PST Fix**
-- [ ] Usunąć negatywne wartości dla d2/e2 (obecnie -20)
-- [ ] Usunąć negatywne wartości dla c3/f3 (obecnie -10)
-- [ ] Zwiększyć bonusy dla zaawansowanych pionów (rank 4-6)
+**1. Pawn PST Fix** ✅
+- [x] Usunąć negatywne wartości dla d2/e2 (było -20 → teraz +5)
+- [x] Usunąć negatywne wartości dla c3/f3 (było -10 → teraz 0/+10)
+- [x] Zwiększyć bonusy dla zaawansowanych pionów (rank 4-6)
 
-**2. Middlegame vs Endgame PST**
-- [ ] Osobne tablice dla middlegame i endgame
-- [ ] Interpolacja między fazami gry (game phase)
-- [ ] W endgame król powinien być aktywny (kingEndgamePST)
+**2. Middlegame vs Endgame PST** ✅
+- [x] Osobne tablice dla middlegame i endgame (PeSTO tables)
+- [x] Interpolacja między fazami gry (tapered eval, gamePhase 0-24)
+- [x] W endgame król powinien być aktywny (egKingTable)
 
 ## Iteracja 12: Search
 - [x] Minimax
