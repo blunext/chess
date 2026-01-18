@@ -33,7 +33,7 @@ type TranspositionTable struct {
 }
 
 // DefaultHashMB is the default transposition table size in megabytes.
-const DefaultHashMB = 4096
+const DefaultHashMB = 6144
 
 // NewTranspositionTable creates a new transposition table with the given size in MB.
 func NewTranspositionTable(sizeMB int) *TranspositionTable {
