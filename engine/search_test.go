@@ -139,7 +139,8 @@ func TestSearch_CaptureHangingQueen(t *testing.T) {
 
 	// Should capture the queen with e3xd4
 	assert.Equal(t, "e3d4", result.Move.ToUCI(), "Should capture the hanging queen")
-	assert.InDelta(t, QueenValue, result.Score, 100, "Should gain roughly a queen")
+	// PeSTO queen value is ~1025, plus mobility and position bonuses
+	assert.InDelta(t, 1025, result.Score, 200, "Should gain roughly a queen (PeSTO value)")
 }
 
 func TestSearch_AvoidLosingQueen(t *testing.T) {
@@ -186,7 +187,8 @@ func TestSearch_BlackToMove(t *testing.T) {
 
 	// Should capture the queen with e5xd4
 	assert.Equal(t, "e5d4", result.Move.ToUCI(), "Black should capture the queen")
-	assert.InDelta(t, -QueenValue, result.Score, 100, "Score should reflect black winning roughly a queen")
+	// PeSTO queen value is ~1025, plus mobility and position bonuses
+	assert.InDelta(t, -1025, result.Score, 200, "Score should reflect black winning roughly a queen (PeSTO value)")
 }
 
 // === Quiescence Tests ===

@@ -490,7 +490,7 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		return 0
 	}
 
-	standPat := Evaluate(*pos)
+	standPat := Evaluate(*pos, pieceMoves)
 
 	// Check if we're in check - must search all evasions, not just captures
 	inCheck := pos.IsInCheck()

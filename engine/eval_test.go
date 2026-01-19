@@ -4,13 +4,17 @@ import (
 	"testing"
 
 	"chess/board"
+	"chess/generator"
 
 	"github.com/stretchr/testify/assert"
 )
 
+// testPM is a shared PieceMoves instance for eval tests
+var testPM = generator.NewGenerator()
+
 func TestEvaluate_InitialPosition(t *testing.T) {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.Equal(t, 0, eval, "Initial position should be equal material")
 }
 
@@ -18,36 +22,37 @@ func TestEvaluate_WhiteMissingPawn(t *testing.T) {
 	// Initial position but white is missing e2 pawn
 	// Material diff = -100, PST may vary slightly due to missing central pawn
 	pos := board.CreatePositionFormFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1")
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.InDelta(t, -PawnValue, eval, 50, "White missing pawn should be around -100")
 }
 
 func TestEvaluate_BlackMissingPawn(t *testing.T) {
 	// Initial position but black is missing e7 pawn
 	pos := board.CreatePositionFormFEN("rnbqkbnr/pppp1ppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.InDelta(t, PawnValue, eval, 50, "Black missing pawn should be around +100")
 }
 
 func TestEvaluate_WhiteUpKnight(t *testing.T) {
 	// White has extra knight (black missing g8 knight)
 	pos := board.CreatePositionFormFEN("rnbqkb1r/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.InDelta(t, KnightValue, eval, 50, "White up a knight should be around +320")
 }
 
 func TestEvaluate_WhiteUpRook(t *testing.T) {
 	// Black missing a8 rook
 	pos := board.CreatePositionFormFEN("1nbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQk - 0 1")
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.InDelta(t, RookValue, eval, 50, "White up a rook should be around +500")
 }
 
 func TestEvaluate_WhiteUpQueen(t *testing.T) {
 	// Black missing queen
 	pos := board.CreatePositionFormFEN("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-	eval := Evaluate(pos)
-	assert.InDelta(t, QueenValue, eval, 50, "White up a queen should be around +900")
+	eval := Evaluate(pos, testPM)
+	// PeSTO queen value is ~1025 (middlegame), plus mobility and position adjustments
+	assert.InDelta(t, 1025, eval, 150, "White up a queen should be around PeSTO queen value (~1025)")
 }
 
 func TestEvaluate_ComplexPosition(t *testing.T) {
@@ -56,7 +61,7 @@ func TestEvaluate_ComplexPosition(t *testing.T) {
 	// Black: K, B, 6P = 330 + 600 = 930
 	// Material diff = 2550 - 930 = 1620, PST will adjust this
 	pos := board.CreatePositionFormFEN("4kb2/pppppp2/8/8/8/8/PPPPP3/RNBQK3 w Q - 0 1")
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 
 	whiteExpected := QueenValue + RookValue + BishopValue + KnightValue + 5*PawnValue
 	blackExpected := BishopValue + 6*PawnValue
@@ -67,7 +72,7 @@ func TestEvaluate_ComplexPosition(t *testing.T) {
 
 func TestEvaluate_OnlyKings(t *testing.T) {
 	pos := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/4K3 w - - 0 1")
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.Equal(t, 0, eval, "Just kings should be 0")
 }
 
@@ -87,8 +92,8 @@ func TestPST_KnightCenterBonus(t *testing.T) {
 	centerKnight := board.CreatePositionFormFEN("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1")
 	cornerKnight := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/N3K3 w - - 0 1")
 
-	centerEval := Evaluate(centerKnight)
-	cornerEval := Evaluate(cornerKnight)
+	centerEval := Evaluate(centerKnight, testPM)
+	cornerEval := Evaluate(cornerKnight, testPM)
 
 	// Central knight should be worth more than corner knight
 	assert.Greater(t, centerEval, cornerEval, "Knight on e4 should score higher than knight on a1")
@@ -101,8 +106,8 @@ func TestPST_PawnAdvancement(t *testing.T) {
 	advancedPawn := board.CreatePositionFormFEN("4k3/8/4P3/8/8/8/8/4K3 w - - 0 1")
 	startingPawn := board.CreatePositionFormFEN("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1")
 
-	advancedEval := Evaluate(advancedPawn)
-	startingEval := Evaluate(startingPawn)
+	advancedEval := Evaluate(advancedPawn, testPM)
+	startingEval := Evaluate(startingPawn, testPM)
 
 	// Advanced pawn should be worth more
 	assert.Greater(t, advancedEval, startingEval, "Advanced pawn should score higher")
@@ -113,29 +118,30 @@ func TestPST_RookOnSeventhRank(t *testing.T) {
 	seventhRank := board.CreatePositionFormFEN("4k3/4R3/8/8/8/8/8/4K3 w - - 0 1")
 	firstRank := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/R3K3 w - - 0 1")
 
-	seventhEval := Evaluate(seventhRank)
-	firstEval := Evaluate(firstRank)
+	seventhEval := Evaluate(seventhRank, testPM)
+	firstEval := Evaluate(firstRank, testPM)
 
 	// Rook on 7th should be worth more
 	assert.Greater(t, seventhEval, firstEval, "Rook on 7th rank should score higher")
 }
 
-func TestPST_KingSafetyMidgame(t *testing.T) {
-	// King in castled position (g1) vs king in center (e4)
+func TestPST_KingEndgame(t *testing.T) {
+	// In endgame (K+R only), central king is better (PeSTO endgame tables)
 	castledKing := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/5RK1 w - - 0 1")
 	centerKing := board.CreatePositionFormFEN("8/4k3/8/8/4K3/8/8/5R2 w - - 0 1")
 
-	castledEval := Evaluate(castledKing)
-	centerEval := Evaluate(centerKing)
+	castledEval := Evaluate(castledKing, testPM)
+	centerEval := Evaluate(centerKing, testPM)
 
-	// Castled king should score better in middlegame PST
-	assert.Greater(t, castledEval, centerEval, "Castled king should score higher than central king")
+	// In endgame with just K+R, central king should be preferred (PeSTO egKingTable)
+	// Note: This is correct behavior - in endgames you want an active king!
+	assert.Greater(t, centerEval, castledEval, "In endgame, central king should score higher")
 }
 
 func TestPST_SymmetricPosition(t *testing.T) {
 	// Initial position should be exactly 0 due to symmetry
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
-	eval := Evaluate(pos)
+	eval := Evaluate(pos, testPM)
 	assert.Equal(t, 0, eval, "Symmetric initial position should evaluate to 0")
 }
 
@@ -145,8 +151,8 @@ func TestPST_BlackMirroring(t *testing.T) {
 	whiteKnightE4 := board.CreatePositionFormFEN("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1")
 	blackKnightE5 := board.CreatePositionFormFEN("4k3/8/8/4n3/8/8/8/4K3 w - - 0 1")
 
-	whiteEval := Evaluate(whiteKnightE4)
-	blackEval := Evaluate(blackKnightE5)
+	whiteEval := Evaluate(whiteKnightE4, testPM)
+	blackEval := Evaluate(blackKnightE5, testPM)
 
 	// Should be roughly opposite (white positive, black negative, similar magnitude)
 	// e4 for white = e5 for black (both are rank 4 from their perspective)
@@ -461,4 +467,87 @@ func TestSpaceBonus_ComplexPosition(t *testing.T) {
 	// White: 2 pawns on central + rank4 = 2 * (25 + 5) = 60
 	// Black: e5 (central) + rank 4 from black's view = 25 + 5 = 30
 	assert.Greater(t, whiteScore, blackScore, "White with d4+e4 should have more space than black with e5")
+}
+
+// === Mobility Tests ===
+
+func TestMobility_BlockedBishop(t *testing.T) {
+	// Bishop blocked by own pawns vs bishop with open diagonals
+	blockedBishop := board.CreatePositionFormFEN("4k3/8/8/8/8/8/PPP5/B3K3 w - - 0 1")
+	openBishop := board.CreatePositionFormFEN("4k3/8/8/8/8/8/5PPP/4KB2 w - - 0 1")
+
+	blockedMob := mobility(blockedBishop, testPM, true)
+	openMob := mobility(openBishop, testPM, true)
+
+	// Open bishop should have better mobility score
+	assert.Greater(t, openMob, blockedMob, "Open bishop should have higher mobility than blocked bishop")
+}
+
+func TestMobility_KnightInCorner(t *testing.T) {
+	// Knight in corner (2 moves) vs knight in center (8 moves)
+	cornerKnight := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/N3K3 w - - 0 1")
+	centerKnight := board.CreatePositionFormFEN("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1")
+
+	cornerMob := mobility(cornerKnight, testPM, true)
+	centerMob := mobility(centerKnight, testPM, true)
+
+	// Center knight should have better mobility
+	assert.Greater(t, centerMob, cornerMob, "Central knight should have higher mobility than corner knight")
+}
+
+func TestMobility_InitialPosition(t *testing.T) {
+	// At start, white has limited piece mobility (only knights can move)
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+
+	whiteMob := mobility(pos, testPM, true)
+	blackMob := mobility(pos, testPM, false)
+
+	// Both sides should have similar (negative) mobility due to blocked pieces
+	assert.InDelta(t, whiteMob, blackMob, 10, "Initial position should have roughly equal mobility")
+	// Both should be negative since pieces have fewer moves than base
+	assert.Less(t, whiteMob, 0, "Initial position should have negative mobility (blocked pieces)")
+}
+
+func TestMobility_RookOpenFile(t *testing.T) {
+	// Rook on open file (many moves) vs rook blocked by pawns
+	openRook := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/R3K3 w - - 0 1")
+	blockedRook := board.CreatePositionFormFEN("4k3/8/8/8/8/8/P7/R3K3 w - - 0 1")
+
+	openMob := mobility(openRook, testPM, true)
+	blockedMob := mobility(blockedRook, testPM, true)
+
+	// Open rook should have more mobility
+	assert.Greater(t, openMob, blockedMob, "Rook on open file should have higher mobility")
+}
+
+func TestMobility_QueenDeveloped(t *testing.T) {
+	// Developed queen (center of board) vs queen on starting square
+	developedQueen := board.CreatePositionFormFEN("4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1")
+	startingQueen := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/3QK3 w - - 0 1")
+
+	developedMob := mobility(developedQueen, testPM, true)
+	startingMob := mobility(startingQueen, testPM, true)
+
+	// Developed queen should have more mobility
+	assert.Greater(t, developedMob, startingMob, "Developed queen should have higher mobility")
+}
+
+// Benchmark for mobility calculation overhead
+func BenchmarkEvaluate_WithMobility(b *testing.B) {
+	pos := board.CreatePositionFormFEN("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1")
+	pm := testPM
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Evaluate(pos, pm)
+	}
+}
+
+func BenchmarkEvaluatePeSTO_WithoutMobility(b *testing.B) {
+	pos := board.CreatePositionFormFEN("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		EvaluatePeSTO(pos)
+	}
 }

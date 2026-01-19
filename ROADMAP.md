@@ -86,7 +86,7 @@
 - [x] Materiał (wartości figur: P=100, N=320, B=330, R=500, Q=900)
 - [x] Piece-Square Tables (PST)
 - [x] Struktura pionów (zdwojone, izolowane, przechodzące)
-- [ ] Aktywność figur (mobilność)
+- [x] Aktywność figur (mobilność) ✅
 - [x] Kontrola przestrzeni (Space bonus) - szczegóły poniżej ✅
 - [x] Tuning PST (Piece-Square Tables) - szczegóły poniżej ✅
 - [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej

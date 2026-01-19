@@ -116,6 +116,21 @@ const (
 	AdvancedPawnRank6   = 15 // bonus for any pawn on rank 6
 )
 
+// Mobility constants - bonus per move above/below base mobility
+// Base mobility is the expected number of moves in an average position
+// Values are conservative to avoid overshadowing material advantage
+const (
+	KnightMobilityBonus = 2 // cp per move (base: 4 moves)
+	BishopMobilityBonus = 2 // cp per move (base: 7 moves)
+	RookMobilityBonus   = 1 // cp per move (base: 7 moves)
+	QueenMobilityBonus  = 1 // cp per move (base: 14 moves)
+
+	KnightBaseMobility = 4
+	BishopBaseMobility = 7
+	RookBaseMobility   = 7
+	QueenBaseMobility  = 14
+)
+
 // File masks for king safety and pawn structure calculations
 var fileMasks [8]board.Bitboard
 
@@ -147,8 +162,8 @@ func init() {
 
 // Evaluate returns the position evaluation in centipawns.
 // Positive = white is better, negative = black is better.
-// Uses PeSTO tables with tapered eval as base, plus king safety and pawn structure.
-func Evaluate(pos board.Position) int {
+// Uses PeSTO tables with tapered eval as base, plus king safety, pawn structure, and mobility.
+func Evaluate(pos board.Position, pieceMoves board.PieceMoves) int {
 	// PeSTO provides material + PST with tapered eval
 	pestoScore := EvaluatePeSTO(pos)
 
@@ -165,7 +180,11 @@ func Evaluate(pos board.Position) int {
 	whiteSpace := spaceBonus(pos, true)
 	blackSpace := spaceBonus(pos, false)
 
-	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure) + (whiteSpace - blackSpace)
+	// Mobility (count legal moves per piece type)
+	whiteMobility := mobility(pos, pieceMoves, true)
+	blackMobility := mobility(pos, pieceMoves, false)
+
+	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure) + (whiteSpace - blackSpace) + (whiteMobility - blackMobility)
 }
 
 // pawnStructure evaluates pawn structure for a color
@@ -240,6 +259,48 @@ func spaceBonus(pos board.Position, isWhite bool) int {
 
 		tempPawns &= tempPawns - 1
 	}
+
+	return score
+}
+
+// mobility evaluates piece mobility for a color by counting legal moves.
+// Returns bonus/penalty based on deviation from expected base mobility.
+func mobility(pos board.Position, pieceMoves board.PieceMoves, isWhite bool) int {
+	// We need to generate moves for the specified color.
+	// If it's not that color's turn, we need to flip temporarily.
+	evalPos := pos
+	if evalPos.WhiteMove != isWhite {
+		evalPos.WhiteMove = isWhite
+	}
+
+	// Generate all legal moves for this color
+	moves := evalPos.GenerateLegalMoves(pieceMoves)
+
+	// Count moves by piece type
+	knightMoves := 0
+	bishopMoves := 0
+	rookMoves := 0
+	queenMoves := 0
+
+	for _, m := range moves {
+		switch m.Piece {
+		case board.Knight:
+			knightMoves++
+		case board.Bishop:
+			bishopMoves++
+		case board.Rook:
+			rookMoves++
+		case board.Queen:
+			queenMoves++
+		}
+	}
+
+	// Calculate mobility score as deviation from base
+	score := 0
+	score += (knightMoves - KnightBaseMobility) * KnightMobilityBonus
+	score += (bishopMoves - BishopBaseMobility) * BishopMobilityBonus
+	score += (rookMoves - RookBaseMobility) * RookMobilityBonus
+	score += (queenMoves - QueenBaseMobility) * QueenMobilityBonus
 
 	return score
 }
