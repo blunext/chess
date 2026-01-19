@@ -546,3 +546,132 @@ func BenchmarkEvaluatePeSTO_WithoutMobility(b *testing.B) {
 		EvaluatePeSTO(pos)
 	}
 }
+
+// ============================================================================
+// Development Bonus Tests
+// ============================================================================
+
+// TestDevelopment_InitialPosition tests that initial position has penalties for undeveloped pieces
+func TestDevelopment_InitialPosition(t *testing.T) {
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+
+	whiteBonus := developmentBonus(pos, true)
+	blackBonus := developmentBonus(pos, false)
+
+	// Both sides have all minors undeveloped: 2 knights (-30) + 2 bishops (-20) = -50
+	// But they also have castling rights: +10 (kingside) + 5 (queenside) = +15
+	// So net should be around -35 per side
+	assert.Less(t, whiteBonus, 0, "White should have development penalty in initial position")
+	assert.Less(t, blackBonus, 0, "Black should have development penalty in initial position")
+	assert.Equal(t, whiteBonus, blackBonus, "Both sides should have equal development penalty")
+
+	t.Logf("Development bonus in initial position: White=%d, Black=%d", whiteBonus, blackBonus)
+}
+
+// TestDevelopment_DevelopedPieces tests that developed pieces get no penalty
+func TestDevelopment_DevelopedPieces(t *testing.T) {
+	// Position after 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 - Italian Game opening
+	// White: Nf3 developed, Bc4 developed, Nb1 and Bc1 still home
+	// Black: Nc6 developed, Bc5 developed, Ng8 and Bc8 still home
+	pos := board.CreatePositionFormFEN("r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1")
+
+	whiteBonus := developmentBonus(pos, true)
+	blackBonus := developmentBonus(pos, false)
+
+	// White: 1 knight undeveloped (-15), 1 bishop undeveloped (-10) = -25 + castling rights
+	// Black: 1 knight undeveloped (-15), 1 bishop undeveloped (-10) = -25 + castling rights
+	t.Logf("Italian Game development: White=%d, Black=%d", whiteBonus, blackBonus)
+
+	// Position after both sides fully developed (no minors on starting squares)
+	// 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.Nc3 Nf6
+	pos2 := board.CreatePositionFormFEN("r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1")
+
+	whiteBonus2 := developmentBonus(pos2, true)
+	blackBonus2 := developmentBonus(pos2, false)
+
+	// Now only Bc1 is undeveloped for white, Bc8 for black
+	assert.Greater(t, whiteBonus2, whiteBonus, "More development should give better score")
+	t.Logf("Four Knights development: White=%d, Black=%d", whiteBonus2, blackBonus2)
+}
+
+// TestDevelopment_EarlyQueen tests penalty for early queen development
+func TestDevelopment_EarlyQueen(t *testing.T) {
+	// Position where white plays Qa4 early (like in our problematic game)
+	// Knights still on b1 and g1
+	pos := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p3/Q3P3/8/PPPP1PPP/RNB1KBNR w KQkq - 0 1")
+
+	whiteBonus := developmentBonus(pos, true)
+	blackBonus := developmentBonus(pos, false)
+
+	// White: Queen moved with both knights undeveloped -> -20 extra penalty
+	// White: 2 knights undeveloped (-30), 2 bishops undeveloped (-20), early queen (-20)
+	// Black: 1 knight developed (Nc6), 1 knight undeveloped (-15), 2 bishops undeveloped (-20)
+	assert.Less(t, whiteBonus, blackBonus, "White should have worse development (early queen)")
+
+	t.Logf("Early queen development: White=%d, Black=%d", whiteBonus, blackBonus)
+}
+
+// TestDevelopment_BlockedCenterPawn tests penalty for blocked center pawns
+func TestDevelopment_BlockedCenterPawn(t *testing.T) {
+	// Position where d2 pawn is blocked by knight on d3
+	pos := board.CreatePositionFormFEN("rnbqkbnr/pppppppp/8/8/8/3N4/PPPPPPPP/R1BQKBNR w KQkq - 0 1")
+
+	whiteBonus := developmentBonus(pos, true)
+	blackBonus := developmentBonus(pos, false)
+
+	// White has knight on d3 blocking d2 pawn -> -15 penalty
+	t.Logf("Blocked d2 pawn: White=%d, Black=%d", whiteBonus, blackBonus)
+}
+
+// TestDevelopment_CastlingRights tests bonus for maintaining castling rights
+func TestDevelopment_CastlingRights(t *testing.T) {
+	// Position with full castling rights
+	pos1 := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
+	whiteBonus1 := developmentBonus(pos1, true)
+
+	// Same position but white lost kingside castling rights
+	pos2 := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w Qkq - 0 1")
+	whiteBonus2 := developmentBonus(pos2, true)
+
+	// Same position but white lost all castling rights
+	pos3 := board.CreatePositionFormFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w kq - 0 1")
+	whiteBonus3 := developmentBonus(pos3, true)
+
+	assert.Greater(t, whiteBonus1, whiteBonus2, "Full castling rights should be better than partial")
+	assert.Greater(t, whiteBonus2, whiteBonus3, "Partial castling rights should be better than none")
+
+	t.Logf("Castling rights: Full=%d, KingsideOnly=%d, None=%d", whiteBonus1, whiteBonus2, whiteBonus3)
+}
+
+// TestDevelopment_Endgame tests that development bonus is disabled in endgame
+func TestDevelopment_Endgame(t *testing.T) {
+	// Endgame position with only kings and pawns
+	pos := board.CreatePositionFormFEN("4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1")
+
+	whiteBonus := developmentBonus(pos, true)
+	blackBonus := developmentBonus(pos, false)
+
+	// Game phase is 0 (no pieces), so development bonus should be 0
+	assert.Equal(t, 0, whiteBonus, "Development bonus should be 0 in endgame")
+	assert.Equal(t, 0, blackBonus, "Development bonus should be 0 in endgame")
+}
+
+// TestDevelopment_GamePhaseScaling tests that development bonus scales with game phase
+func TestDevelopment_GamePhaseScaling(t *testing.T) {
+	// Full middlegame (all pieces)
+	pos1 := board.CreatePositionFormFEN(board.InitialPosition)
+	phase1 := calculateGamePhase(pos1)
+
+	// Late middlegame (queens traded)
+	pos2 := board.CreatePositionFormFEN("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1")
+	phase2 := calculateGamePhase(pos2)
+
+	// Early endgame (only rooks and minor pieces)
+	pos3 := board.CreatePositionFormFEN("r1b1kb1r/pppppppp/8/8/8/8/PPPPPPPP/R1B1KB1R w KQkq - 0 1")
+	phase3 := calculateGamePhase(pos3)
+
+	t.Logf("Game phases: Full=%d, QueensTraded=%d, MinorPiecesTraded=%d", phase1, phase2, phase3)
+
+	assert.Equal(t, 24, phase1, "Initial position should have phase 24")
+	assert.Equal(t, 16, phase2, "Queens traded should have phase 16")
+}

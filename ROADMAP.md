@@ -90,6 +90,7 @@
 - [x] Kontrola przestrzeni (Space bonus) - szczegóły poniżej ✅
 - [x] Tuning PST (Piece-Square Tables) - szczegóły poniżej ✅
 - [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej
+- [x] Rozwój figur (Development Bonus) - szczegóły poniżej ✅
 
 ### Bezpieczeństwo króla (King Safety)
 
@@ -169,6 +170,37 @@
 - [x] Osobne tablice dla middlegame i endgame (PeSTO tables)
 - [x] Interpolacja między fazami gry (tapered eval, gamePhase 0-24)
 - [x] W endgame król powinien być aktywny (egKingTable)
+
+### Rozwój figur (Development Bonus)
+
+> **Cel:** Karanie za nierozwinięte figury w otwarciu/middlegame. Silnik powinien preferować rozwój skoczków i gońców przed pchaniem pionów.
+>
+> **Problem:** W grze z 2026-01-19 09:36 silnik grał b4, b5, h4 (pchanie pionów) zamiast Nf3, Nc3, Bc4 (rozwój figur). Roszada dopiero w 14 ruchu.
+>
+> **Źródła:** [Chessprogramming - Development](https://www.chessprogramming.org/Development), [Stockfish evaluate.cpp](https://github.com/kobolabs/stockfish/blob/master/evaluate.cpp)
+
+**1. Minor Piece Development Penalty** ✅
+- [x] Skoczek na polu startowym (b1/g1 dla białych, b8/g8 dla czarnych): **-15 cp**
+- [x] Goniec na polu startowym (c1/f1 dla białych, c8/f8 dla czarnych): **-10 cp**
+- [x] Tylko gdy gamePhase > 16 (middlegame z wieloma figurami)
+
+**2. Early Queen Development Penalty** ✅
+- [x] Hetman ruszony (nie na d1/d8) gdy ≥2 skoczki nadal na startowych: **-20 cp**
+
+**3. Blocked Center Pawns Penalty** ✅
+- [x] Pion na d2/e2 zablokowany przez własną figurę: **-15 cp**
+- [x] Pion na d7/e7 zablokowany przez własną figurę: **-15 cp**
+- [x] Zachęca do e4/d4 zamiast blokowania centrum
+
+**4. Game Phase Scaling** ✅
+- [x] Development bonus tylko gdy gamePhase > 8 (nie endgame)
+- [x] W endgame (gamePhase < 8) - wyłączone (rozwój nie ma sensu)
+- [x] Płynne skalowanie: bonus * (gamePhase - 8) / 8
+
+**5. Castling Rights Bonus** ✅
+- [x] +10 cp za zachowane prawa do roszady krótkiej
+- [x] +5 cp za zachowane prawa do roszady długiej
+- [x] Zachęca do nietrącania praw do roszady przedwcześnie
 
 ## Iteracja 12: Search
 - [x] Minimax

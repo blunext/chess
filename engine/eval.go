@@ -131,6 +131,37 @@ const (
 	QueenBaseMobility  = 14
 )
 
+// Development Bonus constants - penalties for undeveloped pieces in middlegame
+// Based on Chessprogramming wiki: 3 tempi ≈ 1 pawn, so ~33cp per tempo
+const (
+	UndevelopedKnightPenalty = 15 // knight still on b1/g1 or b8/g8
+	UndevelopedBishopPenalty = 10 // bishop still on c1/f1 or c8/f8
+	EarlyQueenPenalty        = 20 // queen moved while minors undeveloped
+	BlockedCenterPawnPenalty = 15 // d2/e2 or d7/e7 blocked by own piece
+	CastlingRightsBonus      = 10 // bonus for keeping castling rights
+
+	// Game phase thresholds for development evaluation
+	DevelopmentPhaseMin = 8  // below this, development doesn't matter (endgame)
+	DevelopmentPhaseMax = 16 // above this, full development penalty applies
+)
+
+// Starting squares for minor pieces (for development detection)
+var (
+	// White starting squares
+	whiteKnightStarting = board.Bitboard((1 << 1) | (1 << 6)) // b1, g1
+	whiteBishopStarting = board.Bitboard((1 << 2) | (1 << 5)) // c1, f1
+	whiteQueenStarting  = board.Bitboard(1 << 3)              // d1
+
+	// Black starting squares
+	blackKnightStarting = board.Bitboard((1 << 57) | (1 << 62)) // b8, g8
+	blackBishopStarting = board.Bitboard((1 << 58) | (1 << 61)) // c8, f8
+	blackQueenStarting  = board.Bitboard(1 << 59)               // d8
+
+	// Center pawn squares
+	whiteCenterPawnSquares = board.Bitboard((1 << 11) | (1 << 12)) // d2, e2
+	blackCenterPawnSquares = board.Bitboard((1 << 51) | (1 << 52)) // d7, e7
+)
+
 // File masks for king safety and pawn structure calculations
 var fileMasks [8]board.Bitboard
 
@@ -162,7 +193,7 @@ func init() {
 
 // Evaluate returns the position evaluation in centipawns.
 // Positive = white is better, negative = black is better.
-// Uses PeSTO tables with tapered eval as base, plus king safety, pawn structure, and mobility.
+// Uses PeSTO tables with tapered eval as base, plus king safety, pawn structure, mobility, and development.
 func Evaluate(pos board.Position) int {
 	// PeSTO provides material + PST with tapered eval
 	pestoScore := EvaluatePeSTO(pos)
@@ -184,7 +215,11 @@ func Evaluate(pos board.Position) int {
 	whiteMobility := mobility(pos, true)
 	blackMobility := mobility(pos, false)
 
-	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure) + (whiteSpace - blackSpace) + (whiteMobility - blackMobility)
+	// Development (penalties for undeveloped pieces in middlegame)
+	whiteDevelopment := developmentBonus(pos, true)
+	blackDevelopment := developmentBonus(pos, false)
+
+	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure) + (whiteSpace - blackSpace) + (whiteMobility - blackMobility) + (whiteDevelopment - blackDevelopment)
 }
 
 // pawnStructure evaluates pawn structure for a color
@@ -317,6 +352,129 @@ func mobility(pos board.Position, isWhite bool) int {
 		score += (moves - QueenBaseMobility) * QueenMobilityBonus
 		queens &= queens - 1
 	}
+
+	return score
+}
+
+// calculateGamePhase returns the game phase (0-24, where 24 = opening, 0 = endgame)
+func calculateGamePhase(pos board.Position) int {
+	phase := 0
+	phase += popCount(pos.Knights) * 1
+	phase += popCount(pos.Bishops) * 1
+	phase += popCount(pos.Rooks) * 2
+	phase += popCount(pos.Queens) * 4
+	if phase > 24 {
+		phase = 24
+	}
+	return phase
+}
+
+// developmentBonus evaluates piece development (penalties for undeveloped pieces)
+// Only applies in middlegame when pieces should be developed
+func developmentBonus(pos board.Position, isWhite bool) int {
+	gamePhase := calculateGamePhase(pos)
+
+	// Don't apply development penalties in endgame
+	if gamePhase < DevelopmentPhaseMin {
+		return 0
+	}
+
+	score := 0
+
+	var ourKnights, ourBishops, ourQueens board.Bitboard
+	var knightStarting, bishopStarting, queenStarting board.Bitboard
+	var ourPawns, centerPawnSquares board.Bitboard
+	var allPieces board.Bitboard
+
+	if isWhite {
+		ourKnights = pos.Knights & pos.White
+		ourBishops = pos.Bishops & pos.White
+		ourQueens = pos.Queens & pos.White
+		ourPawns = pos.Pawns & pos.White
+		knightStarting = whiteKnightStarting
+		bishopStarting = whiteBishopStarting
+		queenStarting = whiteQueenStarting
+		centerPawnSquares = whiteCenterPawnSquares
+	} else {
+		ourKnights = pos.Knights & pos.Black
+		ourBishops = pos.Bishops & pos.Black
+		ourQueens = pos.Queens & pos.Black
+		ourPawns = pos.Pawns & pos.Black
+		knightStarting = blackKnightStarting
+		bishopStarting = blackBishopStarting
+		queenStarting = blackQueenStarting
+		centerPawnSquares = blackCenterPawnSquares
+	}
+
+	allPieces = pos.White | pos.Black
+
+	// 1. Penalty for undeveloped knights
+	undevelopedKnights := popCount(ourKnights & knightStarting)
+	score -= undevelopedKnights * UndevelopedKnightPenalty
+
+	// 2. Penalty for undeveloped bishops
+	undevelopedBishops := popCount(ourBishops & bishopStarting)
+	score -= undevelopedBishops * UndevelopedBishopPenalty
+
+	// 3. Penalty for early queen development (queen moved while minors undeveloped)
+	queenOnStarting := (ourQueens & queenStarting) != 0
+	if !queenOnStarting && undevelopedKnights >= 2 {
+		score -= EarlyQueenPenalty
+	}
+
+	// 4. Penalty for blocked center pawns (d2/e2 or d7/e7 blocked by own piece)
+	centerPawns := ourPawns & centerPawnSquares
+	for centerPawns != 0 {
+		sq := bitScanForward(centerPawns)
+		// Check if square in front is blocked by own piece
+		var frontSquare int
+		if isWhite {
+			frontSquare = sq + 8 // one rank up
+		} else {
+			frontSquare = sq - 8 // one rank down
+		}
+		if frontSquare >= 0 && frontSquare < 64 {
+			frontMask := board.Bitboard(1) << frontSquare
+			// Check if blocked by own piece (not enemy piece - that's different)
+			if isWhite {
+				if (frontMask & pos.White) != 0 {
+					score -= BlockedCenterPawnPenalty
+				}
+			} else {
+				if (frontMask & pos.Black) != 0 {
+					score -= BlockedCenterPawnPenalty
+				}
+			}
+		}
+		centerPawns &= centerPawns - 1
+	}
+
+	// 5. Bonus for castling rights (only if king hasn't moved)
+	if isWhite {
+		if pos.CastleSide&board.CastleWhiteKingSide != 0 {
+			score += CastlingRightsBonus
+		}
+		if pos.CastleSide&board.CastleWhiteQueenSide != 0 {
+			score += CastlingRightsBonus / 2 // 5 cp for queenside
+		}
+	} else {
+		if pos.CastleSide&board.CastleBlackKingSide != 0 {
+			score += CastlingRightsBonus
+		}
+		if pos.CastleSide&board.CastleBlackQueenSide != 0 {
+			score += CastlingRightsBonus / 2 // 5 cp for queenside
+		}
+	}
+
+	// Scale by game phase (full penalty only in middlegame)
+	if gamePhase < DevelopmentPhaseMax {
+		// Linear scaling between DevelopmentPhaseMin and DevelopmentPhaseMax
+		scale := gamePhase - DevelopmentPhaseMin
+		score = score * scale / (DevelopmentPhaseMax - DevelopmentPhaseMin)
+	}
+
+	// Suppress unused variable warning
+	_ = allPieces
 
 	return score
 }
