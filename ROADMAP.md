@@ -342,10 +342,54 @@
 - [ ] Benchmark positions z zapisanymi expected values
 - [ ] Wykrywanie czy "optymalizacja" przypadkiem nie zmienia wyników
 
-### Self-play Tournament (opcjonalne)
-- [ ] Nowa wersja vs stara wersja (100+ partii)
-- [ ] Statystyczna weryfikacja że siła gry nie spadła
-- [ ] Narzędzie: cutechess-cli lub własny skrypt
+### Self-play Tournament
+
+> **Cel:** Automatyczne rozgrywanie turniejów między wersjami silnika dla wykrywania regresji.
+
+**Architektura:** Standalone tool w `tools/tournament/` - zero importów z silnika, komunikacja tylko przez UCI.
+
+#### Komponenty
+
+**1. UCI Client** (`uci_client.go`)
+- [ ] Start/stop procesu silnika
+- [ ] Handshake UCI (uci → uciok, isready → readyok)
+- [ ] Komendy: position, go, quit
+- [ ] Timeout handling dla nieodpowiadających silników
+
+**2. Match Logic** (`match.go`)
+- [ ] Pojedyncza partia z time control
+- [ ] Wykrywanie końca gry:
+  - [ ] Mat/pat (brak legalnych ruchów)
+  - [ ] Trzykrotne powtórzenie (Zobrist history)
+  - [ ] 50 ruchów bez bicia/piona
+  - [ ] Timeout (przekroczenie czasu)
+- [ ] Alternowanie kolorów między partiami
+
+**3. Statistics** (`stats.go`)
+- [ ] Elo difference: `eloDiff = -400 * log10(1/score - 1)`
+- [ ] 95% Confidence Interval
+- [ ] LOS (Likelihood of Superiority)
+- [ ] SPRT (Sequential Probability Ratio Test) dla early stopping
+
+**4. CLI** (`main.go`)
+```bash
+./tournament -engine1 ./chessengine -engine2 ./old_version \
+             -games 100 -tc "5+0.05" -concurrency 1
+```
+
+#### Przykładowy output
+```
+Tournament: chessengine_v2 vs chessengine_v1
+Time control: 5+0.05s
+Games: 100/100 complete
+
+Results: +32 =45 -23 (54.5%)
+Elo difference: +31 ±18 (95% CI)
+LOS: 99.7%
+
+SPRT [-5, 0]: LLR = 2.94 → H0 REJECTED
+Conclusion: New version is NOT weaker
+```
 
 ## Move ordering zaawansowane
 
