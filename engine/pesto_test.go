@@ -2,12 +2,8 @@ package engine
 
 import (
 	"chess/board"
-	"chess/generator"
 	"testing"
 )
-
-// pestoTestPM is a shared PieceMoves instance for pesto tests
-var pestoTestPM = generator.NewGenerator()
 
 // TestPeSTOInitialPosition tests evaluation of the starting position
 func TestPeSTOInitialPosition(t *testing.T) {
@@ -197,7 +193,7 @@ func TestEvaluateIncludesPeSTO(t *testing.T) {
 	pos := board.CreatePositionFormFEN(board.InitialPosition)
 
 	pestoScore := EvaluatePeSTO(pos)
-	fullScore := Evaluate(pos, pestoTestPM)
+	fullScore := Evaluate(pos)
 
 	// Full evaluation includes king safety and pawn structure
 	// For starting position, both should be close to 0

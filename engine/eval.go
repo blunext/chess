@@ -163,7 +163,7 @@ func init() {
 // Evaluate returns the position evaluation in centipawns.
 // Positive = white is better, negative = black is better.
 // Uses PeSTO tables with tapered eval as base, plus king safety, pawn structure, and mobility.
-func Evaluate(pos board.Position, pieceMoves board.PieceMoves) int {
+func Evaluate(pos board.Position) int {
 	// PeSTO provides material + PST with tapered eval
 	pestoScore := EvaluatePeSTO(pos)
 
@@ -180,9 +180,9 @@ func Evaluate(pos board.Position, pieceMoves board.PieceMoves) int {
 	whiteSpace := spaceBonus(pos, true)
 	blackSpace := spaceBonus(pos, false)
 
-	// Mobility (count legal moves per piece type)
-	whiteMobility := mobility(pos, pieceMoves, true)
-	blackMobility := mobility(pos, pieceMoves, false)
+	// Mobility (using attack bitboards - fast)
+	whiteMobility := mobility(pos, true)
+	blackMobility := mobility(pos, false)
 
 	return pestoScore + (whiteKingSafety - blackKingSafety) + (whitePawnStructure - blackPawnStructure) + (whiteSpace - blackSpace) + (whiteMobility - blackMobility)
 }
@@ -263,44 +263,60 @@ func spaceBonus(pos board.Position, isWhite bool) int {
 	return score
 }
 
-// mobility evaluates piece mobility for a color by counting legal moves.
-// Returns bonus/penalty based on deviation from expected base mobility.
-func mobility(pos board.Position, pieceMoves board.PieceMoves, isWhite bool) int {
-	// We need to generate moves for the specified color.
-	// If it's not that color's turn, we need to flip temporarily.
-	evalPos := pos
-	if evalPos.WhiteMove != isWhite {
-		evalPos.WhiteMove = isWhite
+// mobility evaluates piece mobility using attack bitboards (fast version).
+// Counts squares each piece attacks, excluding squares occupied by own pieces.
+func mobility(pos board.Position, isWhite bool) int {
+	var ourPieces, theirPieces board.Bitboard
+	if isWhite {
+		ourPieces = pos.White
+		theirPieces = pos.Black
+	} else {
+		ourPieces = pos.Black
+		theirPieces = pos.White
 	}
 
-	// Generate all legal moves for this color
-	moves := evalPos.GenerateLegalMoves(pieceMoves)
-
-	// Count moves by piece type
-	knightMoves := 0
-	bishopMoves := 0
-	rookMoves := 0
-	queenMoves := 0
-
-	for _, m := range moves {
-		switch m.Piece {
-		case board.Knight:
-			knightMoves++
-		case board.Bishop:
-			bishopMoves++
-		case board.Rook:
-			rookMoves++
-		case board.Queen:
-			queenMoves++
-		}
-	}
-
-	// Calculate mobility score as deviation from base
+	allPieces := ourPieces | theirPieces
 	score := 0
-	score += (knightMoves - KnightBaseMobility) * KnightMobilityBonus
-	score += (bishopMoves - BishopBaseMobility) * BishopMobilityBonus
-	score += (rookMoves - RookBaseMobility) * RookMobilityBonus
-	score += (queenMoves - QueenBaseMobility) * QueenMobilityBonus
+
+	// Knight mobility
+	knights := pos.Knights & ourPieces
+	for knights != 0 {
+		sq := bitScanForward(knights)
+		attacks := board.KnightAttacks(sq) &^ ourPieces
+		moves := popCount(attacks)
+		score += (moves - KnightBaseMobility) * KnightMobilityBonus
+		knights &= knights - 1
+	}
+
+	// Bishop mobility
+	bishops := pos.Bishops & ourPieces
+	for bishops != 0 {
+		sq := bitScanForward(bishops)
+		attacks := board.BishopAttacks(sq, allPieces) &^ ourPieces
+		moves := popCount(attacks)
+		score += (moves - BishopBaseMobility) * BishopMobilityBonus
+		bishops &= bishops - 1
+	}
+
+	// Rook mobility
+	rooks := pos.Rooks & ourPieces
+	for rooks != 0 {
+		sq := bitScanForward(rooks)
+		attacks := board.RookAttacks(sq, allPieces) &^ ourPieces
+		moves := popCount(attacks)
+		score += (moves - RookBaseMobility) * RookMobilityBonus
+		rooks &= rooks - 1
+	}
+
+	// Queen mobility
+	queens := pos.Queens & ourPieces
+	for queens != 0 {
+		sq := bitScanForward(queens)
+		attacks := board.QueenAttacks(sq, allPieces) &^ ourPieces
+		moves := popCount(attacks)
+		score += (moves - QueenBaseMobility) * QueenMobilityBonus
+		queens &= queens - 1
+	}
 
 	return score
 }

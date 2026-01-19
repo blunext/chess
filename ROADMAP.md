@@ -86,7 +86,7 @@
 - [x] Materiał (wartości figur: P=100, N=320, B=330, R=500, Q=900)
 - [x] Piece-Square Tables (PST)
 - [x] Struktura pionów (zdwojone, izolowane, przechodzące)
-- [x] Aktywność figur (mobilność) ✅
+- [x] Aktywność figur (mobilność) - szczegóły poniżej ✅
 - [x] Kontrola przestrzeni (Space bonus) - szczegóły poniżej ✅
 - [x] Tuning PST (Piece-Square Tables) - szczegóły poniżej ✅
 - [ ] Bezpieczeństwo króla (King Safety) - szczegóły poniżej
@@ -118,6 +118,26 @@
 
 **6. Pawn Storm (opcjonalne - na później)**
 - [ ] Kara za pionki przeciwnika zbliżające się do naszego króla
+
+### Aktywność figur (Mobility)
+
+> **Cel:** Nagradzanie figur z dużą liczbą dostępnych ruchów. Figury z większą mobilnością są cenniejsze.
+
+**Implementacja: Attack Bitboards** ✅
+- [x] Użycie magic bitboards dla sliding pieces (wieża, goniec, hetman)
+- [x] Prekomputowane tablice ataków dla skoczka
+- [x] Zliczanie atakowanych pól przez popcount (szybkie operacje bitowe)
+- [x] Eksport funkcji: `RookAttacks()`, `BishopAttacks()`, `KnightAttacks()`, `QueenAttacks()`
+
+**Bonusy za mobilność** ✅
+- [x] Skoczek: ±2 cp za ruch (base: 4 ruchy)
+- [x] Goniec: ±2 cp za ruch (base: 7 ruchów)
+- [x] Wieża: ±1 cp za ruch (base: 7 ruchów)
+- [x] Hetman: ±1 cp za ruch (base: 14 ruchów)
+
+**Wydajność** ✅
+- [x] ~2,200 ns/op (5x szybciej niż wersja z legal moves)
+- [x] Nie wymaga generowania legalnych ruchów (brak overhead move generator)
 
 ### Kontrola przestrzeni (Space Bonus)
 

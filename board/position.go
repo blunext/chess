@@ -282,6 +282,26 @@ func bishopAttacks(sq int, blockers Bitboard) Bitboard {
 	return Bitboard(magic.BishopMoves[sq][idx])
 }
 
+// RookAttacks returns attack bitboard for a rook (exported version).
+func RookAttacks(sq int, blockers Bitboard) Bitboard {
+	return rookAttacks(sq, blockers)
+}
+
+// BishopAttacks returns attack bitboard for a bishop (exported version).
+func BishopAttacks(sq int, blockers Bitboard) Bitboard {
+	return bishopAttacks(sq, blockers)
+}
+
+// KnightAttacks returns precomputed attack bitboard for a knight.
+func KnightAttacks(sq int) Bitboard {
+	return knightAttacks[sq]
+}
+
+// QueenAttacks returns attack bitboard for a queen (rook + bishop attacks).
+func QueenAttacks(sq int, blockers Bitboard) Bitboard {
+	return rookAttacks(sq, blockers) | bishopAttacks(sq, blockers)
+}
+
 // Precomputed attack tables for jumping pieces (computed at init)
 var knightAttacks [64]Bitboard
 var kingAttacks [64]Bitboard
