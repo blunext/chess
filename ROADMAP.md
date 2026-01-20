@@ -395,7 +395,7 @@ Conclusion: New version is NOT weaker
 
 > **Cel:** Lepsze sortowanie ruchów = szybsze cutoffs = głębsze przeszukiwanie
 
-- [ ] **Killer moves** - 2 sloty na głębokość dla ruchów które spowodowały cutoff
+- [x] **Killer moves** - 2 sloty na głębokość dla ruchów które spowodowały cutoff
 - [ ] **History heuristic** - tablica [from][to] z punktami za dobre ruchy
 - [ ] Countermove heuristic
 - [ ] SEE (Static Exchange Evaluation) dla sortowania bić

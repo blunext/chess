@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"time"
 
 	"chess/board"
@@ -14,7 +15,8 @@ import (
 type Session struct {
 	TT          *TranspositionTable
 	bookRng     *rand.Rand
-	debugLogger *Logger // Optional debug logger for detailed search info
+	debugLogger *Logger                       // Optional debug logger for detailed search info
+	killers     [maxSearchDepth][2]board.Move // Killer moves: 2 slots per ply
 }
 
 // NewSession creates a new game session with its own transposition table.
@@ -31,6 +33,81 @@ func (s *Session) Clear() {
 	if s.TT != nil {
 		s.TT.Clear()
 	}
+	s.clearKillers()
+}
+
+// clearKillers resets killer moves for a new search.
+func (s *Session) clearKillers() {
+	for i := range s.killers {
+		s.killers[i][0] = board.Move{}
+		s.killers[i][1] = board.Move{}
+	}
+}
+
+// storeKiller saves a killer move for the given depth.
+// Killers are non-capture moves that caused beta cutoff.
+func (s *Session) storeKiller(depth int, move board.Move) {
+	if depth >= maxSearchDepth || move.Captured != board.Empty {
+		return // Don't store captures as killers
+	}
+	// Don't store if it's already the first killer
+	if s.killers[depth][0].From == move.From && s.killers[depth][0].To == move.To {
+		return
+	}
+	// Shift killers: slot 0 becomes slot 1, new move goes to slot 0
+	s.killers[depth][1] = s.killers[depth][0]
+	s.killers[depth][0] = move
+}
+
+// isKiller checks if a move is a killer for the given depth.
+func (s *Session) isKiller(depth int, move board.Move) bool {
+	if depth >= maxSearchDepth {
+		return false
+	}
+	k0 := s.killers[depth][0]
+	k1 := s.killers[depth][1]
+	return (k0.From == move.From && k0.To == move.To) ||
+		(k1.From == move.From && k1.To == move.To)
+}
+
+// sortMovesWithKillers sorts moves: TT move first, then captures, then killers, then rest.
+func (s *Session) sortMovesWithKillers(moves []board.Move, ttMove board.Move, depth int) {
+	// Score function that includes killer bonus
+	score := func(m board.Move) int {
+		// Captures: MVV-LVA (highest priority)
+		if m.Captured != board.Empty {
+			victim := pieceValues[m.Captured]
+			attacker := pieceValues[m.Piece] / 10
+			return 10000 + victim - attacker
+		}
+		// Promotions
+		if m.Promotion != board.Empty {
+			return 9000 + pieceValues[m.Promotion]
+		}
+		// Killer moves (after captures, before quiet moves)
+		if s.isKiller(depth, m) {
+			return 8000
+		}
+		// Quiet moves
+		return 0
+	}
+
+	// Sort all moves by score (descending)
+	slices.SortFunc(moves, func(a, b board.Move) int {
+		return score(b) - score(a)
+	})
+
+	// Put TT move first if available
+	if ttMove != (board.Move{}) {
+		for i, m := range moves {
+			if m.From == ttMove.From && m.To == ttMove.To && m.Promotion == ttMove.Promotion {
+				// Move to front
+				copy(moves[1:i+1], moves[0:i])
+				moves[0] = m
+				break
+			}
+		}
+	}
 }
 
 // ResizeTT creates a new transposition table with the given size.
@@ -45,6 +122,7 @@ func (s *Session) SetDebugLogger(logger *Logger) {
 
 // Search finds the best move using alpha-beta pruning with fixed depth.
 func (s *Session) Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchResult {
+	s.clearKillers()
 	ctx := NewSearchContext(24 * time.Hour) // Effectively no time limit
 	result := s.searchRootDepth(pos, pieceMoves, depth, ctx)
 	return SearchResult{
@@ -76,6 +154,8 @@ func (s *Session) SearchWithBook(pos board.Position, pieceMoves board.PieceMoves
 
 // SearchWithTime performs iterative deepening search with time limit.
 func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves, timeLimit time.Duration) SearchResultTimed {
+	s.clearKillers()
+
 	// Generate moves early for debug logging
 	allMoves := pos.GenerateLegalMoves(pieceMoves)
 	sortMoves(allMoves)
@@ -398,20 +478,8 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 		depth++
 	}
 
-	// Put TT move first if available
-	if ttMove != (board.Move{}) {
-		for i, m := range moves {
-			if m.From == ttMove.From && m.To == ttMove.To && m.Promotion == ttMove.Promotion {
-				moves[0], moves[i] = moves[i], moves[0]
-				break
-			}
-		}
-		if len(moves) > 1 {
-			sortMoves(moves[1:])
-		}
-	} else {
-		sortMoves(moves)
-	}
+	// Sort moves: TT move, captures, killers, quiet moves
+	s.sortMovesWithKillers(moves, ttMove, depth)
 
 	if len(moves) == 0 {
 		if pos.IsInCheck() {
@@ -445,6 +513,7 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 				alpha = score
 			}
 			if alpha >= beta {
+				s.storeKiller(depth, move) // Store killer on beta cutoff
 				break
 			}
 		}
@@ -467,6 +536,7 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 				beta = score
 			}
 			if alpha >= beta {
+				s.storeKiller(depth, move) // Store killer on beta cutoff
 				break
 			}
 		}

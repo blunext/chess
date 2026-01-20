@@ -10,7 +10,8 @@ import (
 const (
 	infinity          = 1000000
 	mateScore         = 100000
-	nullMoveReduction = 2 // Depth reduction for null move pruning
+	nullMoveReduction = 2  // Depth reduction for null move pruning
+	maxSearchDepth    = 64 // Maximum search depth for killer moves array
 )
 
 // UseNullMovePruning controls whether null move pruning is enabled.
