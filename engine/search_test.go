@@ -522,6 +522,105 @@ func TestQuiescence_MateThreat_ContinuesSearch(t *testing.T) {
 	assert.True(t, hasThreat, "Should detect Qxg7# threat after any Black move")
 }
 
+// === History Heuristic Tests ===
+
+func TestHistory_UpdatesOnCutoff(t *testing.T) {
+	session := NewSession(16)
+
+	// Simulate a quiet move causing cutoff
+	move := board.Move{
+		From:  board.IndexToBitBoard(12), // e2
+		To:    board.IndexToBitBoard(28), // e4
+		Piece: board.Pawn,
+	}
+
+	// Update history at depth 4
+	session.updateHistory(move, 4)
+
+	// Check history was updated (depth^2 = 16)
+	assert.Equal(t, 16, session.history[12][28], "History should be depth^2")
+
+	// Update again at depth 3
+	session.updateHistory(move, 3)
+	assert.Equal(t, 16+9, session.history[12][28], "History should accumulate")
+}
+
+func TestHistory_IgnoresCaptures(t *testing.T) {
+	session := NewSession(16)
+
+	// Capture move should NOT update history
+	capture := board.Move{
+		From:     board.IndexToBitBoard(12),
+		To:       board.IndexToBitBoard(21),
+		Piece:    board.Pawn,
+		Captured: board.Knight,
+	}
+
+	session.updateHistory(capture, 5)
+
+	// History should remain 0 for captures
+	assert.Equal(t, 0, session.history[12][21], "Captures should not update history")
+}
+
+func TestHistory_ClearedOnNewSearch(t *testing.T) {
+	session := NewSession(16)
+
+	// Set some history
+	session.history[10][20] = 100
+
+	// Clear (simulating new search)
+	session.clearHistory()
+
+	assert.Equal(t, 0, session.history[10][20], "History should be cleared")
+}
+
+func TestHistory_AffectsMoveOrdering(t *testing.T) {
+	session := NewSession(16)
+
+	// Set up history: e2-e4 has high history score
+	session.history[12][28] = 5000 // e2-e4
+	session.history[12][20] = 100  // e2-e3
+
+	moves := []board.Move{
+		{From: board.IndexToBitBoard(12), To: board.IndexToBitBoard(20), Piece: board.Pawn}, // e2-e3 (low history)
+		{From: board.IndexToBitBoard(12), To: board.IndexToBitBoard(28), Piece: board.Pawn}, // e2-e4 (high history)
+	}
+
+	session.sortMovesWithKillers(moves, board.Move{}, 5)
+
+	// e2-e4 should come first due to higher history
+	assert.Equal(t, board.IndexToBitBoard(28), moves[0].To, "Higher history move should come first")
+}
+
+// === Delta Pruning Tests ===
+
+func TestDeltaPruning_DoesNotBreakTactics(t *testing.T) {
+	// Position where White is up a rook - delta pruning should not affect evaluation
+	// White: King e1, Rook a1; Black: King e8
+	pos := board.CreatePositionFormFEN("4k3/8/8/8/8/8/8/R3K3 w - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	result := session.Search(pos, pm, 4)
+
+	// White is up a rook (~500 centipawns), should have clear advantage
+	assert.Greater(t, result.Score, 300, "White should have significant advantage with extra rook")
+}
+
+func TestDeltaPruning_PrunesHopelessCaptures(t *testing.T) {
+	// Position where white is way ahead - delta pruning should skip futile captures
+	// This is more of a performance check - the tactical suite validates correctness
+	pos := board.CreatePositionFormFEN("8/8/8/8/8/8/1q6/K1k5 w - - 0 1")
+	pm := createTestPieceMoves()
+	session := NewSession(16)
+
+	// Should complete without errors
+	result := session.Search(pos, pm, 3)
+
+	// Position is losing for white, score should be very negative
+	assert.Less(t, result.Score, -500, "White is losing badly")
+}
+
 // === Performance Benchmarks ===
 
 func BenchmarkSearch_Depth4(b *testing.B) {

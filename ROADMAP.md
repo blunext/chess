@@ -396,7 +396,7 @@ Conclusion: New version is NOT weaker
 > **Cel:** Lepsze sortowanie ruchów = szybsze cutoffs = głębsze przeszukiwanie
 
 - [x] **Killer moves** - 2 sloty na głębokość dla ruchów które spowodowały cutoff
-- [ ] **History heuristic** - tablica [from][to] z punktami za dobre ruchy
+- [x] **History heuristic** - tablica [from][to] z punktami za dobre ruchy
 - [ ] Countermove heuristic
 - [ ] SEE (Static Exchange Evaluation) dla sortowania bić
 
@@ -413,7 +413,7 @@ Conclusion: New version is NOT weaker
   - Implementacja w quiescence była zbyt kosztowna (hasMateInOne w każdym węźle)
   - Alternatywa: Mate Threat Extensions w main search (patrz niżej)
 - [x] **Check evasion** - kontynuuj gdy w szachu (nie kończ quiescence)
-- [ ] **Delta pruning** - obcinaj bicia które nie mogą poprawić alpha
+- [x] **Delta pruning** - obcinaj bicia które nie mogą poprawić alpha
 
 ## Search Extensions (rozszerzenia)
 

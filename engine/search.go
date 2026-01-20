@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	infinity          = 1000000
-	mateScore         = 100000
-	nullMoveReduction = 2  // Depth reduction for null move pruning
-	maxSearchDepth    = 64 // Maximum search depth for killer moves array
+	infinity           = 1000000
+	mateScore          = 100000
+	nullMoveReduction  = 2   // Depth reduction for null move pruning
+	maxSearchDepth     = 64  // Maximum search depth for killer moves array
+	deltaPruningMargin = 200 // Safety margin for delta pruning in quiescence
 )
 
 // UseNullMovePruning controls whether null move pruning is enabled.
@@ -26,14 +27,8 @@ func isEndgame(pos *board.Position) bool {
 }
 
 // Piece values for move ordering (MVV-LVA)
-var pieceValues = map[board.Piece]int{
-	board.Pawn:   100,
-	board.Knight: 320,
-	board.Bishop: 330,
-	board.Rook:   500,
-	board.Queen:  900,
-	board.King:   20000,
-}
+// Array indexed by board.Piece (Empty=0, Pawn=1, Knight=2, Bishop=3, Rook=4, Queen=5, King=6)
+var pieceValues = [7]int{0, 100, 320, 330, 500, 900, 20000}
 
 // moveScore returns a score for move ordering (higher = search first)
 // Uses MVV-LVA: Most Valuable Victim - Least Valuable Attacker

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"math/bits"
 	"math/rand"
 	"slices"
 	"time"
@@ -17,6 +18,7 @@ type Session struct {
 	bookRng     *rand.Rand
 	debugLogger *Logger                       // Optional debug logger for detailed search info
 	killers     [maxSearchDepth][2]board.Move // Killer moves: 2 slots per ply
+	history     [64][64]int                   // History heuristic: [from][to] scores
 }
 
 // NewSession creates a new game session with its own transposition table.
@@ -42,6 +44,27 @@ func (s *Session) clearKillers() {
 		s.killers[i][0] = board.Move{}
 		s.killers[i][1] = board.Move{}
 	}
+}
+
+// clearHistory resets history heuristic scores for a new search.
+func (s *Session) clearHistory() {
+	for i := range 64 {
+		for j := range 64 {
+			s.history[i][j] = 0
+		}
+	}
+}
+
+// updateHistory increments history score for a move that caused beta cutoff.
+// Only quiet moves (non-captures) should update history.
+func (s *Session) updateHistory(move board.Move, depth int) {
+	if move.Captured != board.Empty {
+		return // Don't update history for captures
+	}
+	// Increment by depth^2 - deeper cutoffs are more valuable
+	fromIdx := bits.TrailingZeros64(uint64(move.From))
+	toIdx := bits.TrailingZeros64(uint64(move.To))
+	s.history[fromIdx][toIdx] += depth * depth
 }
 
 // storeKiller saves a killer move for the given depth.
@@ -72,7 +95,7 @@ func (s *Session) isKiller(depth int, move board.Move) bool {
 
 // sortMovesWithKillers sorts moves: TT move first, then captures, then killers, then rest.
 func (s *Session) sortMovesWithKillers(moves []board.Move, ttMove board.Move, depth int) {
-	// Score function that includes killer bonus
+	// Score function that includes killer and history bonus
 	score := func(m board.Move) int {
 		// Captures: MVV-LVA (highest priority)
 		if m.Captured != board.Empty {
@@ -88,8 +111,10 @@ func (s *Session) sortMovesWithKillers(moves []board.Move, ttMove board.Move, de
 		if s.isKiller(depth, m) {
 			return 8000
 		}
-		// Quiet moves
-		return 0
+		// Quiet moves: use history score (capped to stay below killers)
+		fromIdx := bits.TrailingZeros64(uint64(m.From))
+		toIdx := bits.TrailingZeros64(uint64(m.To))
+		return min(s.history[fromIdx][toIdx], 7000)
 	}
 
 	// Sort all moves by score (descending)
@@ -123,6 +148,7 @@ func (s *Session) SetDebugLogger(logger *Logger) {
 // Search finds the best move using alpha-beta pruning with fixed depth.
 func (s *Session) Search(pos board.Position, pieceMoves board.PieceMoves, depth int) SearchResult {
 	s.clearKillers()
+	s.clearHistory()
 	ctx := NewSearchContext(24 * time.Hour) // Effectively no time limit
 	result := s.searchRootDepth(pos, pieceMoves, depth, ctx)
 	return SearchResult{
@@ -155,6 +181,7 @@ func (s *Session) SearchWithBook(pos board.Position, pieceMoves board.PieceMoves
 // SearchWithTime performs iterative deepening search with time limit.
 func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves, timeLimit time.Duration) SearchResultTimed {
 	s.clearKillers()
+	s.clearHistory()
 
 	// Generate moves early for debug logging
 	allMoves := pos.GenerateLegalMoves(pieceMoves)
@@ -513,7 +540,8 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 				alpha = score
 			}
 			if alpha >= beta {
-				s.storeKiller(depth, move) // Store killer on beta cutoff
+				s.storeKiller(depth, move)   // Store killer on beta cutoff
+				s.updateHistory(move, depth) // Update history for good quiet moves
 				break
 			}
 		}
@@ -536,7 +564,8 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 				beta = score
 			}
 			if alpha >= beta {
-				s.storeKiller(depth, move) // Store killer on beta cutoff
+				s.storeKiller(depth, move)   // Store killer on beta cutoff
+				s.updateHistory(move, depth) // Update history for good quiet moves
 				break
 			}
 		}
@@ -595,6 +624,14 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		sortMoves(searchMoves)
 
 		for _, move := range searchMoves {
+			// Delta pruning: skip captures that can't improve alpha
+			// Don't prune when in check or for promotions
+			if !inCheck && move.Promotion == board.Empty && move.Captured != board.Empty {
+				if standPat+pieceValues[move.Captured]+deltaPruningMargin < alpha {
+					continue
+				}
+			}
+
 			undo := pos.MakeMove(move)
 			score := s.quiescence(pos, pieceMoves, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
@@ -631,6 +668,14 @@ func (s *Session) quiescence(pos *board.Position, pieceMoves board.PieceMoves, a
 		sortMoves(searchMoves)
 
 		for _, move := range searchMoves {
+			// Delta pruning: skip captures that can't improve beta
+			// Don't prune when in check or for promotions
+			if !inCheck && move.Promotion == board.Empty && move.Captured != board.Empty {
+				if standPat-pieceValues[move.Captured]-deltaPruningMargin > beta {
+					continue
+				}
+			}
+
 			undo := pos.MakeMove(move)
 			score := s.quiescence(pos, pieceMoves, alpha, beta, ctx)
 			pos.UnmakeMove(move, undo)
