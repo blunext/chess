@@ -13,7 +13,7 @@ import (
 
 // DefaultSearchDepth is the default depth for engine search
 // Note: With quiescence search, effective depth is higher
-const DefaultSearchDepth = 6
+const DefaultSearchDepth = 7
 
 // Play starts an interactive game in the terminal
 func Play() {

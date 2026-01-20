@@ -17,6 +17,7 @@ type LogInfo struct {
 	Depth     int
 	Nodes     int64
 	Duration  time.Duration
+	GoParams  string // go command parameters (e.g. "wtime:180000 btime:178000")
 }
 
 // Logger handles threaded logging to a file
@@ -89,7 +90,13 @@ func (l *Logger) writer() {
 			sourcePrefix = "B"
 		}
 
-		line := fmt.Sprintf("%s | M/%s: %s%-5s | Sc: %-8s | Ns: %-8d | T: %-8s | FEN: %s\n",
+		// Build line with optional GoParams
+		goParams := ""
+		if info.GoParams != "" {
+			goParams = " | " + info.GoParams
+		}
+
+		line := fmt.Sprintf("%s | M/%s: %s%-5s | Sc: %-8s | Ns: %-8d | T: %-8s | FEN: %s%s\n",
 			info.Timestamp.Format("01-02 15:04:05"),
 			sourcePrefix,
 			piecePrefix,
@@ -98,6 +105,7 @@ func (l *Logger) writer() {
 			info.Nodes,
 			info.Duration.Round(10*time.Millisecond),
 			info.FEN,
+			goParams,
 		)
 		l.file.WriteString(line)
 	}

@@ -267,24 +267,27 @@ func (uci *UCI) cmdGo(args []string) {
 		}
 	}
 
+	// Build go params string for logging (times in seconds)
+	goParams := ""
+	if movetime > 0 {
+		goParams = fmt.Sprintf("mt:%.1fs", float64(movetime)/1000)
+	} else if useTimeControl {
+		goParams = fmt.Sprintf("wt:%.1fs bt:%.1fs wi:%.1fs bi:%.1fs",
+			float64(wtime)/1000, float64(btime)/1000, float64(winc)/1000, float64(binc)/1000)
+		if movestogo > 0 {
+			goParams += fmt.Sprintf(" mtg:%d", movestogo)
+		}
+	} else if depth > 0 {
+		goParams = fmt.Sprintf("d:%d", depth)
+	} else if infinite {
+		goParams = "inf"
+	} else {
+		goParams = fmt.Sprintf("d:%d(def)", engine.DefaultSearchDepth)
+	}
+
 	// Log game parameters on first move
 	if uci.firstMove && uci.logger != nil {
-		params := ""
-		if movetime > 0 {
-			params = fmt.Sprintf("movetime: %dms", movetime)
-		} else if useTimeControl {
-			params = fmt.Sprintf("wtime: %dms, btime: %dms, winc: %dms, binc: %dms", wtime, btime, winc, binc)
-			if movestogo > 0 {
-				params += fmt.Sprintf(", movestogo: %d", movestogo)
-			}
-		} else if depth > 0 {
-			params = fmt.Sprintf("depth: %d", depth)
-		} else if infinite {
-			params = "infinite"
-		} else {
-			params = fmt.Sprintf("default depth: %d", engine.DefaultSearchDepth)
-		}
-		uci.logger.LogGameStart(params)
+		uci.logger.LogGameStart(goParams)
 		uci.firstMove = false
 	}
 
@@ -371,6 +374,7 @@ func (uci *UCI) cmdGo(args []string) {
 				Depth:    result.Depth,
 				Nodes:    result.Nodes,
 				Duration: duration,
+				GoParams: goParams,
 			})
 		}
 	} else {
