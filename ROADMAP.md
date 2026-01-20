@@ -283,7 +283,7 @@
 > **Cel:** Przedłużanie przeszukiwania w krytycznych sytuacjach, aby nie przegapić taktyki.
 
 - [x] **Check Extensions** - +1 ply gdy pozycja jest w szachu (najważniejsze!)
-- [ ] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
+- [x] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
 - [ ] **Recapture Extensions** - +1 ply przy odbiciu na tym samym polu
 - [ ] **Passed Pawn Extensions** - +1 ply dla promocji pionów przechodzących
 
@@ -350,28 +350,28 @@
 
 #### Komponenty
 
-**1. UCI Client** (`uci_client.go`)
-- [ ] Start/stop procesu silnika
-- [ ] Handshake UCI (uci → uciok, isready → readyok)
-- [ ] Komendy: position, go, quit
-- [ ] Timeout handling dla nieodpowiadających silników
+**1. UCI Client** (`uci_client.go`) ✅
+- [x] Start/stop procesu silnika
+- [x] Handshake UCI (uci → uciok, isready → readyok)
+- [x] Komendy: position, go, quit
+- [x] Timeout handling dla nieodpowiadających silników
 
-**2. Match Logic** (`match.go`)
-- [ ] Pojedyncza partia z time control
-- [ ] Wykrywanie końca gry:
-  - [ ] Mat/pat (brak legalnych ruchów)
-  - [ ] Trzykrotne powtórzenie (Zobrist history)
-  - [ ] 50 ruchów bez bicia/piona
-  - [ ] Timeout (przekroczenie czasu)
-- [ ] Alternowanie kolorów między partiami
+**2. Match Logic** (`match.go`) ✅
+- [x] Pojedyncza partia z time control
+- [x] Wykrywanie końca gry:
+  - [x] Mat/pat (brak legalnych ruchów)
+  - [x] Trzykrotne powtórzenie (uproszczone - move list)
+  - [x] 50 ruchów bez bicia/piona (uproszczone)
+  - [x] Timeout (przekroczenie czasu)
+- [x] Alternowanie kolorów między partiami
 
-**3. Statistics** (`stats.go`)
-- [ ] Elo difference: `eloDiff = -400 * log10(1/score - 1)`
-- [ ] 95% Confidence Interval
-- [ ] LOS (Likelihood of Superiority)
-- [ ] SPRT (Sequential Probability Ratio Test) dla early stopping
+**3. Statistics** (`stats.go`) ✅
+- [x] Elo difference: `eloDiff = -400 * log10(1/score - 1)`
+- [x] 95% Confidence Interval
+- [x] LOS (Likelihood of Superiority)
+- [x] SPRT (Sequential Probability Ratio Test) dla early stopping
 
-**4. CLI** (`main.go`)
+**4. CLI** (`main.go`) ✅
 ```bash
 ./tournament -engine1 ./chessengine -engine2 ./old_version \
              -games 100 -tc "5+0.05" -concurrency 1
@@ -420,7 +420,7 @@ Conclusion: New version is NOT weaker
 > **Cel:** Przedłużanie przeszukiwania w krytycznych sytuacjach
 
 - [x] **Check Extensions** - +1 ply gdy pozycja jest w szachu
-- [ ] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
+- [x] **Single Reply Extensions** - +1 ply gdy jest tylko jeden legalny ruch
 - [ ] **Recapture Extensions** - +1 ply przy odbiciu na tym samym polu
 - [ ] **Passed Pawn Extensions** - +1 ply dla promocji pionów przechodzących
 - [ ] **Mate Threat Extensions** - +1 ply gdy przeciwnik grozi matem

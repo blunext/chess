@@ -392,6 +392,12 @@ func (s *Session) alphaBeta(pos *board.Position, pieceMoves board.PieceMoves, de
 
 	moves := pos.GenerateLegalMoves(pieceMoves)
 
+	// Single Reply Extension: extend when only one legal move
+	// Avoids horizon effect when forced to make a specific move
+	if len(moves) == 1 && !inCheck { // Don't double-extend if already extended for check
+		depth++
+	}
+
 	// Put TT move first if available
 	if ttMove != (board.Move{}) {
 		for i, m := range moves {
