@@ -170,16 +170,16 @@ var adjacentFileMasks [8]board.Bitboard
 
 func init() {
 	// Initialize file masks (columns a-h)
-	for f := 0; f < 8; f++ {
+	for f := range 8 {
 		var mask board.Bitboard
-		for r := 0; r < 8; r++ {
+		for r := range 8 {
 			mask |= board.Bitboard(1) << (r*8 + f)
 		}
 		fileMasks[f] = mask
 	}
 
 	// Initialize adjacent file masks
-	for f := 0; f < 8; f++ {
+	for f := range 8 {
 		var mask board.Bitboard
 		if f > 0 {
 			mask |= fileMasks[f-1]
@@ -482,7 +482,7 @@ func developmentBonus(pos board.Position, isWhite bool) int {
 // doubledPawns returns penalty for doubled pawns
 func doubledPawns(pawns board.Bitboard) int {
 	penalty := 0
-	for f := 0; f < 8; f++ {
+	for f := range 8 {
 		pawnsOnFile := pawns & fileMasks[f]
 		count := popCount(pawnsOnFile)
 		if count > 1 {
@@ -552,7 +552,7 @@ func isPassedPawn(sq, file, rank int, enemyPawns board.Bitboard, isWhite bool) b
 	if isWhite {
 		// For white, block ranks above the pawn (rank+1 to 7)
 		for r := rank + 1; r < 8; r++ {
-			for f := 0; f < 8; f++ {
+			for f := range 8 {
 				if blockingMask&(board.Bitboard(1)<<(r*8+f)) != 0 {
 					// Keep this square in blocking mask
 				} else {
@@ -563,7 +563,7 @@ func isPassedPawn(sq, file, rank int, enemyPawns board.Bitboard, isWhite bool) b
 		// Create rank mask for ranks ahead
 		var aheadMask board.Bitboard
 		for r := rank + 1; r < 8; r++ {
-			for f := 0; f < 8; f++ {
+			for f := range 8 {
 				aheadMask |= board.Bitboard(1) << (r*8 + f)
 			}
 		}
@@ -572,7 +572,7 @@ func isPassedPawn(sq, file, rank int, enemyPawns board.Bitboard, isWhite bool) b
 		// For black, block ranks below the pawn (0 to rank-1)
 		var aheadMask board.Bitboard
 		for r := 0; r < rank; r++ {
-			for f := 0; f < 8; f++ {
+			for f := range 8 {
 				aheadMask |= board.Bitboard(1) << (r*8 + f)
 			}
 		}

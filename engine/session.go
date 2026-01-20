@@ -93,8 +93,8 @@ func (s *Session) sortMovesWithKillers(moves []board.Move, ttMove board.Move, de
 	}
 
 	// Sort all moves by score (descending)
-	slices.SortFunc(moves, func(a, b board.Move) int {
-		return score(b) - score(a)
+	slices.SortFunc(moves, func(i, j board.Move) int {
+		return score(j) - score(i)
 	})
 
 	// Put TT move first if available

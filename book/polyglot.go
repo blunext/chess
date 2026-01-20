@@ -3,11 +3,12 @@ package book
 
 import (
 	"bytes"
+	"cmp"
 	_ "embed"
 	"encoding/binary"
 	"io"
 	"math/rand"
-	"sort"
+	"slices"
 
 	"chess/board"
 )
@@ -57,8 +58,8 @@ func loadFromReader(r io.Reader) (*Book, error) {
 	}
 
 	// Entries should already be sorted by key, but ensure it
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Key < entries[j].Key
+	slices.SortFunc(entries, func(i, j Entry) int {
+		return cmp.Compare(i.Key, j.Key)
 	})
 
 	return &Book{entries: entries}, nil
@@ -71,8 +72,8 @@ func (b *Book) Probe(hash uint64) []Entry {
 	}
 
 	// Binary search for first entry with this key
-	idx := sort.Search(len(b.entries), func(i int) bool {
-		return b.entries[i].Key >= hash
+	idx, _ := slices.BinarySearchFunc(b.entries, hash, func(e Entry, target uint64) int {
+		return cmp.Compare(e.Key, target)
 	})
 
 	var matches []Entry

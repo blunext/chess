@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"sort"
+	"slices"
 
 	"chess/board"
 	"chess/book"
@@ -56,8 +56,8 @@ func moveScore(m board.Move) int {
 
 // sortMoves orders moves for better alpha-beta pruning
 func sortMoves(moves []board.Move) {
-	sort.Slice(moves, func(i, j int) bool {
-		return moveScore(moves[i]) > moveScore(moves[j])
+	slices.SortFunc(moves, func(i, j board.Move) int {
+		return moveScore(j) - moveScore(i) // descending
 	})
 }
 

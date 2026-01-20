@@ -108,9 +108,7 @@ func (tt *TranspositionTable) Store(hash uint64, score int16, depth int8, flag T
 
 // Clear resets the transposition table.
 func (tt *TranspositionTable) Clear() {
-	for i := range tt.entries {
-		tt.entries[i] = TTEntry{}
-	}
+	clear(tt.entries)
 }
 
 // Size returns the number of entries in the table.
@@ -126,13 +124,10 @@ func (tt *TranspositionTable) SizeMB() int {
 // Hashfull returns the permille of entries that are used (for UCI info).
 func (tt *TranspositionTable) Hashfull() int {
 	// Sample first 1000 entries for performance
-	sample := uint64(1000)
-	if sample > tt.size {
-		sample = tt.size
-	}
+	sample := min(uint64(1000), tt.size)
 
 	used := 0
-	for i := uint64(0); i < sample; i++ {
+	for i := range sample {
 		if tt.entries[i].Flag != TTFlagNone {
 			used++
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/bits"
+	"strings"
 
 	"chess/magic"
 )
@@ -312,7 +313,7 @@ func init() {
 		{2, 1}, {2, -1}, {-2, 1}, {-2, -1},
 		{1, 2}, {1, -2}, {-1, 2}, {-1, -2},
 	}
-	for sq := 0; sq < 64; sq++ {
+	for sq := range 64 {
 		file := sq & 7
 		rank := sq >> 3
 		for _, off := range knightOffsets {
@@ -329,7 +330,7 @@ func init() {
 		{1, 0}, {-1, 0}, {0, 1}, {0, -1},
 		{1, 1}, {1, -1}, {-1, 1}, {-1, -1},
 	}
-	for sq := 0; sq < 64; sq++ {
+	for sq := range 64 {
 		file := sq & 7
 		rank := sq >> 3
 		for _, off := range kingOffsets {
@@ -922,7 +923,7 @@ func (position Position) pieceAt(sq Bitboard) Piece {
 // Pretty returns a compact, human-readable representation of the chess position
 // using Unicode chess piece symbols.
 func (position *Position) Pretty() string {
-	var s string
+	var sb strings.Builder
 
 	// Unicode chess pieces
 	pieceSymbols := map[Piece]map[Color]string{
@@ -934,11 +935,11 @@ func (position *Position) Pretty() string {
 		King:   {ColorWhite: "♔", ColorBlack: "♚"},
 	}
 
-	s += "\n"
-	s += "    ┌───┬───┬───┬───┬───┬───┬───┬───┐\n"
+	sb.WriteString("\n")
+	sb.WriteString("    ┌───┬───┬───┬───┬───┬───┬───┬───┐\n")
 
 	for r := Rank8; r >= Rank1; r-- {
-		s += fmt.Sprintf("  %d │", r+1)
+		fmt.Fprintf(&sb, "  %d │", r+1)
 		for f := FileA; f <= FileH; f++ {
 			idx := squareIndex(f, r)
 			symbol := " "
@@ -956,15 +957,15 @@ func (position *Position) Pretty() string {
 				}
 			}
 
-			s += " " + symbol + " │"
+			sb.WriteString(" " + symbol + " │")
 		}
-		s += "\n"
+		sb.WriteString("\n")
 		if r > Rank1 {
-			s += "    ├───┼───┼───┼───┼───┼───┼───┼───┤\n"
+			sb.WriteString("    ├───┼───┼───┼───┼───┼───┼───┼───┤\n")
 		}
 	}
-	s += "    └───┴───┴───┴───┴───┴───┴───┴───┘\n"
-	s += "      a   b   c   d   e   f   g   h\n"
+	sb.WriteString("    └───┴───┴───┴───┴───┴───┴───┴───┘\n")
+	sb.WriteString("      a   b   c   d   e   f   g   h\n")
 
-	return s
+	return sb.String()
 }

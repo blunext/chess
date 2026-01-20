@@ -13,6 +13,7 @@ package board
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Bitboard uint64
@@ -26,7 +27,7 @@ func BB() {
 
 func (b *Bitboard) Print() {
 	fmt.Println("")
-	for i := 0; i < 64; i++ {
+	for i := range 64 {
 		sq := 0
 		if b.IsBitSet(i) {
 			sq = 1
@@ -63,19 +64,20 @@ func IndexToBitBoard(i int) Bitboard {
 }
 
 func (b *Bitboard) Pretty() string {
-	s := "+---+---+---+---+---+---+---+---+\n"
+	var sb strings.Builder
+	sb.WriteString("+---+---+---+---+---+---+---+---+\n")
 	for r := Rank8; r >= Rank1; r-- {
 		for f := FileA; f <= FileH; f++ {
 			if b.IsBitSet(squareIndex(f, r)) {
-				s += "| X "
+				sb.WriteString("| X ")
 			} else {
-				s += "|   "
+				sb.WriteString("|   ")
 			}
 		}
-		s += fmt.Sprintf("| %d\n+---+---+---+---+---+---+---+---+\n", r+1)
+		fmt.Fprintf(&sb, "| %d\n+---+---+---+---+---+---+---+---+\n", r+1)
 	}
-	s += "  a   b   c   d   e   f   g   h\n"
-	return s
+	sb.WriteString("  a   b   c   d   e   f   g   h\n")
+	return sb.String()
 }
 
 func toFlat(boards ...Bitboard) Bitboard {
@@ -91,7 +93,7 @@ func toFlat(boards ...Bitboard) Bitboard {
 func (b *Bitboard) ToSlice() []Bitboard {
 	// todo: consider nil slice
 	slice := []Bitboard{}
-	for i := 0; i < 64; i++ {
+	for i := range 64 {
 		mask := Bitboard(1 << i)
 		if *b&mask != 0 {
 			slice = append(slice, mask)

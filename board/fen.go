@@ -91,7 +91,7 @@ func createColoredBoard(piecePlacement string) coloredBoard {
 			switch {
 			case unicode.IsDigit(char):
 				var n, _ = strconv.Atoi(string(char))
-				for i := 0; i < n; i++ {
+				for range n {
 					b[bIndex] = noPiece
 					bIndex++
 				}
@@ -111,7 +111,7 @@ func (position Position) ToFEN() string {
 	// 1. Piece placement
 	for rank := 7; rank >= 0; rank-- {
 		empty := 0
-		for file := 0; file < 8; file++ {
+		for file := range 8 {
 			sq := rank*8 + file
 			bb := Bitboard(1 << sq)
 

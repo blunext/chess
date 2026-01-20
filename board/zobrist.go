@@ -27,21 +27,21 @@ func init() {
 	rng := rand.New(rand.NewSource(0x12345678DEADBEEF))
 
 	// Generate piece keys
-	for color := 0; color < 2; color++ {
-		for piece := 0; piece < 6; piece++ {
-			for sq := 0; sq < 64; sq++ {
+	for color := range 2 {
+		for piece := range 6 {
+			for sq := range 64 {
 				zobristPiece[color][piece][sq] = rng.Uint64()
 			}
 		}
 	}
 
 	// Generate castling keys
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		zobristCastling[i] = rng.Uint64()
 	}
 
 	// Generate en passant keys
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		zobristEnPassant[i] = rng.Uint64()
 	}
 
@@ -66,7 +66,7 @@ func (pos *Position) ComputeHash() uint64 {
 
 	// Hash all pieces
 	allPieces := pos.Pawns | pos.Knights | pos.Bishops | pos.Rooks | pos.Queens | pos.Kings
-	for sq := 0; sq < 64; sq++ {
+	for sq := range 64 {
 		sqBB := Bitboard(1 << sq)
 		if allPieces&sqBB == 0 {
 			continue
@@ -107,7 +107,7 @@ func (pos *Position) ComputeHash() uint64 {
 	if pos.EnPassant != 0 {
 		// Get file from en passant square
 		epSq := 0
-		for i := 0; i < 64; i++ {
+		for i := range 64 {
 			if pos.EnPassant&(1<<i) != 0 {
 				epSq = i
 				break

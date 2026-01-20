@@ -89,7 +89,7 @@ func (m Move) ToUCI() string {
 
 // bitboardToIndex converts a bitboard with a single bit set to its index (0-63).
 func bitboardToIndex(bb Bitboard) int {
-	for i := 0; i < 64; i++ {
+	for i := range 64 {
 		if bb&(1<<i) != 0 {
 			return i
 		}
