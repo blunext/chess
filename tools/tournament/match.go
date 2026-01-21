@@ -202,12 +202,17 @@ func playGame(cfg Config, e1White bool, gameNum int, verbose bool) (GameResult, 
 			return ResultDraw, nil
 		}
 
-		// Track positions for repetition (simplified: use move list as key)
-		posKey := strings.Join(moves, " ")
-		positions[posKey]++
-		if positions[posKey] >= 3 {
-			return ResultDraw, nil
+		// Detect repetition by checking if last 4 moves repeat 3 times (12-move cycle)
+		// Pattern: [A B C D] [A B C D] [A B C D] = draw
+		if len(moves) >= 12 {
+			last4 := strings.Join(moves[len(moves)-4:], " ")
+			prev4 := strings.Join(moves[len(moves)-8:len(moves)-4], " ")
+			prev8 := strings.Join(moves[len(moves)-12:len(moves)-8], " ")
+			if last4 == prev4 && prev4 == prev8 {
+				return ResultDraw, nil
+			}
 		}
+		_ = positions // Keep for future proper FEN-based detection
 
 		if verbose {
 			color := "W"

@@ -151,6 +151,16 @@ func (s *Session) Search(pos board.Position, pieceMoves board.PieceMoves, depth 
 	s.clearHistory()
 	ctx := NewSearchContext(24 * time.Hour) // Effectively no time limit
 	result := s.searchRootDepth(pos, pieceMoves, depth, ctx)
+
+	// Output UCI info for GUIs and testing tools
+	timeMs := ctx.Elapsed().Milliseconds()
+	if timeMs == 0 {
+		timeMs = 1
+	}
+	nps := ctx.nodes * 1000 / timeMs
+	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %s\n",
+		depth, result.Score, ctx.nodes, timeMs, nps, result.Move.ToUCI())
+
 	return SearchResult{
 		Move:  result.Move,
 		Score: result.Score,
@@ -168,6 +178,8 @@ func (s *Session) SearchWithBook(pos board.Position, pieceMoves board.PieceMoves
 			legalMoves := pos.GenerateLegalMoves(pieceMoves)
 			for _, m := range legalMoves {
 				if m.From == bookMove.From && m.To == bookMove.To && m.Promotion == bookMove.Promotion {
+					// Output UCI info for book moves (fastchess compatibility)
+					fmt.Printf("info depth 0 score cp 0 nodes 0 time 1 nps 0 pv %s string book\n", m.ToUCI())
 					return SearchResult{Move: m, FromBook: true}
 				}
 			}
@@ -241,6 +253,15 @@ func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves
 	// Iterative deepening: search depth 1, 2, 3, ... until time runs out
 	for depth := 1; depth <= 100; depth++ {
 		result := s.searchRootDepth(pos, pieceMoves, depth, ctx)
+
+		// Output UCI info for GUIs and testing tools (fastchess, cutechess)
+		timeMs := ctx.Elapsed().Milliseconds()
+		if timeMs == 0 {
+			timeMs = 1
+		}
+		nps := ctx.nodes * 1000 / timeMs
+		fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %s\n",
+			depth, result.Score, ctx.nodes, timeMs, nps, result.Move.ToUCI())
 
 		// Debug log: iteration result
 		if s.debugLogger != nil {
