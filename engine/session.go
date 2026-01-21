@@ -14,6 +14,8 @@ import (
 	"chess/book"
 )
 
+var defaultNumOfCPU = runtime.NumCPU() / 2
+
 // Session holds per-game state that should be isolated between concurrent games.
 // This allows running multiple games in parallel using separate goroutines.
 type Session struct {
@@ -49,7 +51,7 @@ func (s *Session) SetThreads(n int) {
 // Returns runtime.NumCPU()-1 if not explicitly set (leave 1 core for OS/GUI).
 func (s *Session) GetThreads() int {
 	if s.numThreads < 1 {
-		return max(runtime.NumCPU()-1, 1)
+		return max(defaultNumOfCPU, 1)
 	}
 	return s.numThreads
 }
