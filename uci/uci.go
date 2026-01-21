@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -122,6 +123,7 @@ func (uci *UCI) cmdUCI() {
 	fmt.Printf("id author %s\n", engineAuthor)
 	// Options
 	fmt.Printf("option name Hash type spin default %d min 1 max 32768\n", engine.DefaultHashMB)
+	fmt.Printf("option name Threads type spin default %d min 1 max 256\n", max(runtime.NumCPU()-1, 1))
 	fmt.Println("uciok")
 }
 
@@ -152,6 +154,11 @@ func (uci *UCI) cmdSetOption(args []string) {
 		if sizeMB, err := strconv.Atoi(value); err == nil && sizeMB > 0 {
 			uci.session.ResizeTT(sizeMB)
 			fmt.Printf("info string Hash set to %d MB\n", sizeMB)
+		}
+	case "threads":
+		if threads, err := strconv.Atoi(value); err == nil && threads > 0 {
+			uci.session.SetThreads(threads)
+			fmt.Printf("info string Threads set to %d\n", threads)
 		}
 	}
 }
@@ -268,21 +275,21 @@ func (uci *UCI) cmdGo(args []string) {
 	}
 
 	// Build go params string for logging (times in seconds)
-	goParams := ""
+	goParams := fmt.Sprintf("threads:%d ", uci.session.GetThreads())
 	if movetime > 0 {
-		goParams = fmt.Sprintf("mt:%.1fs", float64(movetime)/1000)
+		goParams += fmt.Sprintf("mt:%.1fs", float64(movetime)/1000)
 	} else if useTimeControl {
-		goParams = fmt.Sprintf("wt:%.1fs bt:%.1fs wi:%.1fs bi:%.1fs",
+		goParams += fmt.Sprintf("wt:%.1fs bt:%.1fs wi:%.1fs bi:%.1fs",
 			float64(wtime)/1000, float64(btime)/1000, float64(winc)/1000, float64(binc)/1000)
 		if movestogo > 0 {
 			goParams += fmt.Sprintf(" mtg:%d", movestogo)
 		}
 	} else if depth > 0 {
-		goParams = fmt.Sprintf("d:%d", depth)
+		goParams += fmt.Sprintf("d:%d", depth)
 	} else if infinite {
-		goParams = "inf"
+		goParams += "inf"
 	} else {
-		goParams = fmt.Sprintf("d:%d(def)", engine.DefaultSearchDepth)
+		goParams += fmt.Sprintf("d:%d(def)", engine.DefaultSearchDepth)
 	}
 
 	// Log game parameters on first move

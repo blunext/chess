@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"math/bits"
 	"math/rand"
+	"runtime"
 	"slices"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"chess/board"
@@ -19,6 +22,7 @@ type Session struct {
 	debugLogger *Logger                       // Optional debug logger for detailed search info
 	killers     [maxSearchDepth][2]board.Move // Killer moves: 2 slots per ply
 	history     [64][64]int                   // History heuristic: [from][to] scores
+	numThreads  int                           // Number of threads for Lazy SMP (0 = use NumCPU)
 }
 
 // NewSession creates a new game session with its own transposition table.
@@ -28,6 +32,26 @@ func NewSession(hashSizeMB int) *Session {
 		TT:      NewTranspositionTable(hashSizeMB),
 		bookRng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+}
+
+// SetThreads sets the number of threads for Lazy SMP parallel search.
+func (s *Session) SetThreads(n int) {
+	if n < 1 {
+		n = 1
+	}
+	if n > 256 {
+		n = 256 // Reasonable maximum
+	}
+	s.numThreads = n
+}
+
+// GetThreads returns the number of threads configured for search.
+// Returns runtime.NumCPU()-1 if not explicitly set (leave 1 core for OS/GUI).
+func (s *Session) GetThreads() int {
+	if s.numThreads < 1 {
+		return max(runtime.NumCPU()-1, 1)
+	}
+	return s.numThreads
 }
 
 // Clear resets the session state for a new game.
@@ -214,7 +238,7 @@ func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves
 			FEN:       pos.ToFEN(),
 			Move:      "START",
 			Source:    "Debug",
-			Score:     fmt.Sprintf("moves=%d first=%s TT=%dMB", len(allMoves), firstMove, ttSize),
+			Score:     fmt.Sprintf("moves=%d first=%s TT=%dMB threads=%d", len(allMoves), firstMove, ttSize, s.GetThreads()),
 			Depth:     0,
 			Nodes:     0,
 			Duration:  timeLimit,
@@ -244,6 +268,11 @@ func (s *Session) SearchWithTime(pos board.Position, pieceMoves board.PieceMoves
 				}
 			}
 		}
+	}
+
+	// Use parallel search if multiple threads configured
+	if s.GetThreads() > 1 {
+		return s.searchParallel(pos, pieceMoves, timeLimit)
 	}
 
 	ctx := NewSearchContext(timeLimit)
@@ -740,4 +769,152 @@ func (s *Session) hasMateInOne(pos *board.Position, pieceMoves board.PieceMoves,
 	}
 
 	return false
+}
+
+// smpWorker represents a worker thread for Lazy SMP parallel search.
+// Each worker has its own killers and history tables but shares the TT.
+type smpWorker struct {
+	id        int
+	session   *Session // Worker's own session (with shared TT)
+	bestMove  board.Move
+	bestScore int
+	maxDepth  int
+	nodes     int64
+}
+
+// smpResult holds the result from a worker thread.
+type smpResult struct {
+	workerID  int
+	bestMove  board.Move
+	bestScore int
+	maxDepth  int
+	nodes     int64
+}
+
+// searchParallel performs Lazy SMP parallel search with N threads.
+// All threads share the TT but have separate killers/history tables.
+func (s *Session) searchParallel(pos board.Position, pieceMoves board.PieceMoves, timeLimit time.Duration) SearchResultTimed {
+	numThreads := s.GetThreads()
+	ctx := NewSearchContext(timeLimit)
+
+	// Channel to collect results from workers
+	results := make(chan smpResult, numThreads)
+	var wg sync.WaitGroup
+
+	// Atomic counter for total nodes across all threads
+	var totalNodes atomic.Int64
+
+	// Spawn worker threads
+	for threadID := 0; threadID < numThreads; threadID++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+
+			// Create worker session with shared TT but own killers/history
+			workerSession := &Session{
+				TT:         s.TT, // Shared TT
+				bookRng:    rand.New(rand.NewSource(time.Now().UnixNano() + int64(id))),
+				numThreads: 1, // Worker doesn't spawn more threads
+			}
+			workerSession.clearKillers()
+			workerSession.clearHistory()
+
+			var bestMove board.Move
+			var bestScore int
+			var maxDepth int
+			var workerNodes int64
+
+			// Diversity: different threads start at different depths
+			startDepth := 1
+			if id%2 == 1 {
+				startDepth = 2 // Odd threads start at depth 2
+			}
+
+			// Iterative deepening
+			for depth := startDepth; depth <= 100; depth++ {
+				// Check if we should stop
+				if ctx.stopped.Load() {
+					break
+				}
+
+				// Create worker-local context for node counting
+				workerCtx := &SearchContext{
+					startTime: ctx.startTime,
+					timeLimit: ctx.timeLimit,
+					nodes:     0,
+				}
+				// Share stopped flag
+				if ctx.stopped.Load() {
+					workerCtx.stopped.Store(true)
+				}
+
+				result := workerSession.searchRootDepth(pos, pieceMoves, depth, workerCtx)
+
+				// Update worker stats
+				workerNodes += workerCtx.nodes
+				totalNodes.Add(workerCtx.nodes)
+
+				// If search completed this depth, update best result
+				if !workerCtx.stopped.Load() {
+					bestMove = result.Move
+					bestScore = result.Score
+					maxDepth = depth
+
+					// Check soft time limit for this thread
+					if ctx.Elapsed()*4 >= timeLimit {
+						break
+					}
+				} else {
+					break
+				}
+
+				// Propagate stop signal
+				if ctx.stopped.Load() {
+					break
+				}
+			}
+
+			// Send result
+			results <- smpResult{
+				workerID:  id,
+				bestMove:  bestMove,
+				bestScore: bestScore,
+				maxDepth:  maxDepth,
+				nodes:     workerNodes,
+			}
+		}(threadID)
+	}
+
+	// Wait for all workers to finish
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results and find best (deepest search wins)
+	var finalResult smpResult
+	for result := range results {
+		if result.maxDepth > finalResult.maxDepth ||
+			(result.maxDepth == finalResult.maxDepth && result.bestScore > finalResult.bestScore) {
+			finalResult = result
+		}
+	}
+
+	// Output final UCI info
+	timeMs := ctx.Elapsed().Milliseconds()
+	if timeMs == 0 {
+		timeMs = 1
+	}
+	nodes := totalNodes.Load()
+	nps := nodes * 1000 / timeMs
+	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %s\n",
+		finalResult.maxDepth, finalResult.bestScore, nodes, timeMs, nps, finalResult.bestMove.ToUCI())
+
+	return SearchResultTimed{
+		Move:  finalResult.bestMove,
+		Score: finalResult.bestScore,
+		Depth: finalResult.maxDepth,
+		Nodes: nodes,
+		Time:  ctx.Elapsed(),
+	}
 }

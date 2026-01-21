@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -619,6 +620,82 @@ func TestDeltaPruning_PrunesHopelessCaptures(t *testing.T) {
 
 	// Position is losing for white, score should be very negative
 	assert.Less(t, result.Score, -500, "White is losing badly")
+}
+
+// === Lazy SMP Tests ===
+
+func TestLazySMP_SetThreads(t *testing.T) {
+	session := NewSession(16)
+
+	// Default should be runtime.NumCPU()-1 (leave 1 core for OS)
+	assert.Equal(t, max(runtime.NumCPU()-1, 1), session.GetThreads(), "Default threads should be NumCPU-1")
+
+	// Set to 4
+	session.SetThreads(4)
+	assert.Equal(t, 4, session.GetThreads(), "Should set to 4 threads")
+
+	// Minimum should be 1
+	session.SetThreads(0)
+	assert.Equal(t, 1, session.GetThreads(), "Minimum threads should be 1")
+
+	session.SetThreads(-5)
+	assert.Equal(t, 1, session.GetThreads(), "Negative should clamp to 1")
+
+	// Maximum should be 256
+	session.SetThreads(1000)
+	assert.Equal(t, 256, session.GetThreads(), "Maximum threads should be 256")
+}
+
+func TestLazySMP_FindsSameMove(t *testing.T) {
+	// Test that multi-threaded search finds valid moves
+	pos := board.CreatePositionFormFEN("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1")
+	pm := createTestPieceMoves()
+
+	// Single thread - should find Qxf7# (mate in 1)
+	session1 := NewSession(64)
+	session1.SetThreads(1)
+	result1 := session1.SearchWithTime(pos, pm, 500*time.Millisecond)
+
+	// Multi thread - should also find Qxf7#
+	session2 := NewSession(64)
+	session2.SetThreads(4)
+	result2 := session2.SearchWithTime(pos, pm, 500*time.Millisecond)
+
+	// Both should find the mate
+	assert.Equal(t, "h5f7", result1.Move.ToUCI(), "Single thread should find Qxf7#")
+	assert.Equal(t, "h5f7", result2.Move.ToUCI(), "Multi thread should find Qxf7#")
+	assert.Greater(t, result1.Score, 50000, "Should detect mate")
+	assert.Greater(t, result2.Score, 50000, "Should detect mate")
+}
+
+func TestLazySMP_ReturnsValidMove(t *testing.T) {
+	pos := board.CreatePositionFormFEN(board.InitialPosition)
+	pm := createTestPieceMoves()
+
+	session := NewSession(64)
+	session.SetThreads(2)
+	result := session.SearchWithTime(pos, pm, 200*time.Millisecond)
+
+	// Should return a valid move
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
+	assert.Greater(t, result.Depth, 0, "Should reach at least depth 1")
+	assert.Greater(t, result.Nodes, int64(0), "Should search some nodes")
+}
+
+func TestLazySMP_SharedTT(t *testing.T) {
+	// Test that TT is shared between threads (both sessions use same TT)
+	session := NewSession(64)
+	session.SetThreads(4)
+
+	pos := board.CreatePositionFormFEN("r2qkb1r/ppp2ppp/2n1bn2/3pp3/4P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 0 6")
+	pm := createTestPieceMoves()
+
+	// Run search with multi-threads
+	result := session.SearchWithTime(pos, pm, 1*time.Second)
+
+	// TT should have entries after search
+	assert.Greater(t, session.TT.Hashfull(), 0, "TT should have entries after parallel search")
+	assert.NotEqual(t, board.Move{}, result.Move, "Should find a move")
 }
 
 // === Performance Benchmarks ===
